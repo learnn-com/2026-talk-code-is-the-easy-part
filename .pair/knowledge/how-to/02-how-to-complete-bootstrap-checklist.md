@@ -6,7 +6,7 @@ Transform PRD requirements into comprehensive technical standards through system
 
 **Role**: Senior Technical Architect (Bootstrap and Standards Creation)
 **Process**: AI proposes and drafts, Developer validates and approves
-**Skills**: `/pair-process-bootstrap` (operational details), `/pair-capability-setup-pm` (PM tool configuration)
+**Skills**: `/bootstrap` (operational details), `/setup-pm` (PM tool configuration)
 
 ## Session State Management
 
@@ -25,11 +25,11 @@ BOOTSTRAP COMPLETION STATE:
 
 ## Project Categorization Framework
 
-| Type | Profile | Team | Scale | Compliance |
-|------|---------|------|-------|------------|
-| **A** (Pet/PoC) | Minimal budget, fast iteration | 1-3 people | Single user or small group | None |
-| **B** (Startup/Scale-up) | Moderate budget, rapid growth | 3-15 people | Scaling users | Some integrations |
-| **C** (Enterprise) | Significant budget, stability | 15+ people | Many users, high availability | Full compliance |
+| Type                     | Profile                        | Team        | Scale                         | Compliance        |
+| ------------------------ | ------------------------------ | ----------- | ----------------------------- | ----------------- |
+| **A** (Pet/PoC)          | Minimal budget, fast iteration | 1-3 people  | Single user or small group    | None              |
+| **B** (Startup/Scale-up) | Moderate budget, rapid growth  | 3-15 people | Scaling users                 | Some integrations |
+| **C** (Enterprise)       | Significant budget, stability  | 15+ people  | Many users, high availability | Full compliance   |
 
 ## Phase Flow
 
@@ -42,7 +42,7 @@ BOOTSTRAP COMPLETION STATE:
 2. Extract: target users, budget, timeline, team size, compliance, integrations
 3. Evaluate project type indicators against categorization framework
 
-See `/pair-process-bootstrap` Phase 0 and Phase 1 for operational details.
+See `/bootstrap` Phase 0 and Phase 1 for operational details.
 
 ### Phase 1: Checklist Completion
 
@@ -56,7 +56,7 @@ Systematically gather information for all technical decisions.
 
 **HALT** — do NOT generate documents with incomplete information.
 
-See `/pair-process-bootstrap` Phase 2 for section-specific questions and assessment flow.
+See `/bootstrap` Phase 2 for section-specific questions and assessment flow.
 
 ### Phase 2: Standards Generation
 
@@ -71,16 +71,16 @@ For each document:
 3. Iterate on feedback
 4. Get approval before saving to [`.pair/adoption/tech/`](../../adoption/tech/)
 
-See `/pair-process-bootstrap` Phase 3 for generation procedures and quality gate setup.
+See `/bootstrap` Phase 3 for generation procedures and quality gate setup.
 
 ### Phase 3: Finalization
 
 1. Verify consistency across all standards documents
-2. Configure PM tool via `/pair-capability-setup-pm`
+2. Configure PM tool via `/setup-pm`
 3. Establish update process for future iterations
 4. Get developer final approval
 
-See `/pair-process-bootstrap` Phase 4 for verification and PM configuration flow.
+See `/bootstrap` Phase 4 for verification and PM configuration flow.
 
 ## Final Quality Checklist
 
@@ -89,7 +89,7 @@ See `/pair-process-bootstrap` Phase 4 for verification and PM configuration flow
 - [ ] Documents stored in [`.pair/adoption/tech/`](../../adoption/tech/)
 - [ ] Internal consistency verified across all documents
 - [ ] Quality gates configured and executable
-- [ ] PM tool configured via `/pair-capability-setup-pm`
+- [ ] PM tool configured via `/setup-pm`
 
 ## References
 
@@ -100,5 +100,3 @@ See `/pair-process-bootstrap` Phase 4 for verification and PM configuration flow
 ## Next Steps
 
 - **Create and Prioritize Initiatives** → [03-how-to-create-and-prioritize-initiatives.md](03-how-to-create-and-prioritize-initiatives.md)
-- **Define Project Subdomains** → [04-how-to-define-subdomains.md](04-how-to-define-subdomains.md)
-- **Define Bounded Contexts** → [05-how-to-define-bounded-contexts.md](05-how-to-define-bounded-contexts.md)

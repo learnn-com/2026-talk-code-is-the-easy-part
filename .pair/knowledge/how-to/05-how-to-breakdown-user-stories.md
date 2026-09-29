@@ -6,29 +6,29 @@ Transform epics into user story breakdowns through vertical slicing and INVEST v
 
 **Role**: Product Engineer & Product Owner/Manager (Epic Decomposition)
 **Process**: AI proposes & structures, Developer validates & approves
-**Skill**: When `/pair-process-plan-stories` is available, invoke it — it automates the operational steps of this workflow (epic selection, story identification, INVEST validation, PM tool creation). This how-to describes the workflow and its HALT conditions.
+**Skill**: When `/plan-stories` is available, invoke it — it automates the operational steps of this workflow (epic selection, story identification, INVEST validation, PM tool creation). This how-to describes the workflow and its HALT conditions.
 
 ## Skill Composition
 
-This how-to orchestrates the `/pair-process-plan-stories` skill.
+This how-to orchestrates the `/plan-stories` skill.
 
 | Skill            | Purpose                                                                                                  |
 | ---------------- | -------------------------------------------------------------------------------------------------------- |
-| `/pair-process-plan-stories`  | Executes the full process: epic selection, story identification, INVEST validation, story creation.       |
-| `/pair-capability-write-issue`   | Composed by `/pair-process-plan-stories` — creates or updates story issues in the PM tool.                             |
+| `/plan-stories`  | Executes the full process: epic selection, story identification, INVEST validation, story creation.       |
+| `/write-issue`   | Composed by `/plan-stories` — creates or updates story issues in the PM tool.                             |
 
 > **If skills are not installed**, follow the manual workflow below.
 
 ## Orchestration Flow
 
 1. **Verify prerequisites**: bootstrap complete per [way-of-working.md](../../adoption/tech/way-of-working.md), epics exist in PM tool, [user story template](../guidelines/collaboration/templates/user-story-template.md) available.
-2. **Invoke `/pair-process-plan-stories`** with optional `$epic` argument. The skill handles:
+2. **Invoke `/plan-stories`** with optional `$epic` argument. The skill handles:
    - Existing story detection (idempotent — skips already-created)
    - Epic selection (highest-priority Todo, or specified `$epic`)
    - Story identification (workflow steps, CRUD, business rules, user roles)
    - Vertical slicing — every story delivers end-to-end user value with UI manifestation
    - INVEST validation (Independent, Negotiable, Valuable, Estimable, Small, Testable)
-   - Story creation via `/pair-capability-write-issue` with `$type: story`
+   - Story creation via `/write-issue` with `$type: story`
    - Epic coverage validation
 3. **Developer validates** story candidates when prompted.
 4. **Re-invoke** to create missing stories for the same or different epic.
@@ -90,8 +90,8 @@ For each approved story:
 ## References
 
 - Template: [User Story Template](../guidelines/collaboration/templates/user-story-template.md)
-- Input: [Epic Breakdown](06-how-to-breakdown-epics.md)
+- Input: [Epic Breakdown](04-how-to-breakdown-epics.md)
 - PM Tool: [PM Tool Guidelines](../guidelines/collaboration/project-management-tool/README.md)
 - INVEST: [Scrum Guidelines](../guidelines/collaboration/methodology/scrum.md)
 - Bootstrap: [Bootstrap Checklist](02-how-to-complete-bootstrap-checklist.md)
-- Next: [Refine User Stories](08-how-to-refine-a-user-story.md)
+- Next: [Refine User Stories](06-how-to-refine-a-user-story.md)

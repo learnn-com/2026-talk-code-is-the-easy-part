@@ -25,6 +25,16 @@
 **User Story:** [Copy the user story statement]  
 **Acceptance Criteria:** [Reference to acceptance criteria being addressed]
 
+## Screenshots
+
+> **Include this section only if the PR contains UI changes** (modified files under `apps/web`, `apps/mobile`, or `apps/extension`). Remove this section entirely for backend-only PRs.
+
+| Before         | After          |
+| -------------- | -------------- |
+| _(screenshot)_ | _(screenshot)_ |
+
+> Screenshots will be added manually by the PR author before review.
+
 ## Changes Made
 
 ### Implementation Details
@@ -102,6 +112,16 @@ Linting: ✅ Clean
 - [ ] **Testing:** Validate test coverage and quality
 
 ## Deployment Information
+
+### Services to Release
+
+List all apps and services that need to be deployed for this PR (based on changed files):
+
+| Service        | Path                   | Notes                         |
+| -------------- | ---------------------- | ----------------------------- |
+| [service-name] | [apps/x or services/x] | [any special deployment note] |
+
+> **How to detect**: run `git diff --name-only origin/main...HEAD` and group changed files by top-level package (`apps/*`, `services/*`).
 
 ### Environment Impact
 
@@ -229,13 +249,11 @@ Impact: [Improvement/degradation percentage]
 ### Review Focus Areas
 
 1. **Business Logic Validation:**
-
    - Verify implementation matches acceptance criteria
    - Check edge cases and error scenarios
    - Validate user experience flows
 
 2. **Code Quality Assessment:**
-
    - Review code structure and organization
    - Check for code reusability and maintainability
    - Verify naming conventions and documentation

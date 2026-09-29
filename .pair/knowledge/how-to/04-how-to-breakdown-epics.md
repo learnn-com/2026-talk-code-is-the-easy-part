@@ -6,28 +6,28 @@ Transform strategic initiatives into comprehensive epic breakdowns. Epics bridge
 
 **Role**: Product Owner/Manager (Strategic Decomposition)
 **Process**: AI proposes & structures, Developer validates & approves
-**Skill**: When `/pair-process-plan-epics` is available, invoke it — it automates the operational steps of this workflow (initiative selection, epic analysis, creation via PM tool). This how-to describes the workflow and its HALT conditions.
+**Skill**: When `/plan-epics` is available, invoke it — it automates the operational steps of this workflow (initiative selection, epic analysis, creation via PM tool). This how-to describes the workflow and its HALT conditions.
 
 ## Skill Composition
 
-This how-to orchestrates the `/pair-process-plan-epics` skill.
+This how-to orchestrates the `/plan-epics` skill.
 
-| Skill          | Purpose                                                                                         |
-| -------------- | ----------------------------------------------------------------------------------------------- |
-| `/pair-process-plan-epics`  | Executes the full process: initiative selection, epic analysis, epic creation, completion.       |
-| `/pair-capability-write-issue` | Composed by `/pair-process-plan-epics` — creates or updates epic issues in the PM tool.                      |
+| Skill          | Purpose                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| `/plan-epics`  | Executes the full process: initiative selection, epic analysis, epic creation, completion. |
+| `/write-issue` | Composed by `/plan-epics` — creates or updates epic issues in the PM tool.                 |
 
 > **If skills are not installed**, follow the manual workflow below.
 
 ## Orchestration Flow
 
-1. **Verify prerequisites**: bootstrap complete per [way-of-working.md](../../adoption/tech/way-of-working.md), initiatives exist in PM tool, bounded contexts recommended.
-2. **Invoke `/pair-process-plan-epics`** with optional `$initiative` argument. The skill handles:
+1. **Verify prerequisites**: bootstrap complete per [way-of-working.md](../../adoption/tech/way-of-working.md), initiatives exist in PM tool.
+2. **Invoke `/plan-epics`** with optional `$initiative` argument. The skill handles:
    - Existing epic detection (idempotent — skips already-created)
    - Initiative selection (highest-priority Todo, or specified `$initiative`)
    - Epic analysis (business objectives, user value, technical requirements, BC alignment)
    - Epic 0 assessment for new projects (bootstrap/foundation epic)
-   - Epic creation via `/pair-capability-write-issue` with `$type: epic`
+   - Epic creation via `/write-issue` with `$type: epic`
    - Coverage validation
 3. **Developer validates** the epic breakdown when prompted.
 4. **Re-invoke** to create missing epics for the same or different initiative.
@@ -73,4 +73,4 @@ This how-to orchestrates the `/pair-process-plan-epics` skill.
 - Input: [Initiative Creation](03-how-to-create-and-prioritize-initiatives.md)
 - PM Tool: [PM Tool Guidelines](../guidelines/collaboration/project-management-tool/README.md)
 - Bootstrap: [Bootstrap Checklist](02-how-to-complete-bootstrap-checklist.md)
-- Next: [Breakdown User Stories](07-how-to-breakdown-user-stories.md)
+- Next: [Breakdown User Stories](05-how-to-breakdown-user-stories.md)

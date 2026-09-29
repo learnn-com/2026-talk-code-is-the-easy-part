@@ -14,22 +14,21 @@ Run `/pair-next` at the start of every session. It reads project adoption files 
 
 | Type | Count | Purpose |
 |------|-------|---------|
-| **Process** | 11 | Lifecycle phases — orchestrate capability skills |
-| **Capability** | 20 | Atomic units — perform a single focused operation |
+| **Process** | 9 | Lifecycle phases — orchestrate capability skills |
+| **Capability** | 22 | Atomic units — perform a single focused operation |
+| **Navigator** | 1 | Recommend the next most relevant skill |
 
-Process skills compose capability skills. Capability skills are independently invocable. Total: 32 (11 process + 20 capability + 1 navigator).
+Process skills compose capability skills. Capability skills are independently invocable. Total: 32 (9 process + 22 capability + 1 navigator).
 
 ## Full Catalog
 
-### Process Skills (11)
+### Process Skills (9)
 
 | Skill | How-To | Phase | Description |
 |-------|--------|-------|-------------|
 | `/pair-process-specify-prd` | 01 | Induction | Create/update PRD |
 | `/pair-process-bootstrap` | 02 | Induction | Full project setup |
 | `/pair-process-plan-initiatives` | 03 | Strategic | Create and prioritize initiatives |
-| `/pair-process-map-subdomains` | 04 | Strategic | Define DDD subdomains |
-| `/pair-process-map-contexts` | 05 | Strategic | Define bounded contexts |
 | `/pair-process-plan-epics` | 06 | Strategic | Break initiatives into epics |
 | `/pair-process-plan-stories` | 07 | Iteration | Break epics into user stories |
 | `/pair-process-refine-story` | 08 | Iteration | Refine stories with AC + technical analysis |
@@ -39,7 +38,7 @@ Process skills compose capability skills. Capability skills are independently in
 
 ### Capability Skills (19)
 
-#### Assessment Skills (8)
+#### Assessment Skills (9)
 
 | Skill | Scope |
 |-------|-------|
@@ -51,6 +50,7 @@ Process skills compose capability skills. Capability skills are independently in
 | `/pair-capability-assess-infrastructure` | Infrastructure strategy evaluation |
 | `/pair-capability-assess-observability` | Observability strategy evaluation |
 | `/pair-capability-assess-ai` | AI development tools evaluation |
+| `/pair-capability-assess-security` | Security posture + adoption alignment (guidelines, package `.pair.security.md`) |
 
 #### Verification Skills (4)
 
@@ -87,34 +87,13 @@ Process skills compose capability skills. Capability skills are independently in
 
 ## Directory Structure
 
+In this repository, skills live under `.skills/` (each skill is a folder with `SKILL.md`):
+
 ```text
 .skills/
-├── process/              # Lifecycle phase skills
-│   ├── specify-prd/
-│   ├── bootstrap/
-│   ├── plan-initiatives/
-│   ├── map-subdomains/
-│   ├── map-contexts/
-│   ├── plan-epics/
-│   ├── plan-stories/
-│   ├── refine-story/
-│   ├── plan-tasks/
-│   ├── implement/
-│   └── review/
-├── capability/           # Atomic operation skills
-│   ├── assess-*/         # 8 assessment skills
-│   ├── verify-*/         # 3 verification skills
-│   ├── design-manual-tests/
-│   ├── execute-manual-tests/
-│   ├── record-decision/
-│   ├── write-issue/
-│   ├── estimate/
-│   ├── setup-gates/
-│   ├── setup-pm/
-│   ├── assess-code-quality/
-│   └── manage-flags/
-└── next/                 # Navigator skill
-    └── SKILL.md
+├── next/
+├── process-*/
+└── capability-*/
 ```
 
 Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` + `description`) and a structured algorithm using the **check → skip → act → verify** pattern.
@@ -127,8 +106,8 @@ Process skills compose capability skills with optional graceful degradation:
 /pair-process-implement
 ├── /pair-capability-verify-quality       (required)
 ├── /pair-capability-record-decision      (required)
-├── /pair-capability-assess-stack          (optional — warns if missing)
-└── /pair-capability-verify-adoption       (optional — warns if missing)
+├── /pair-capability-assess-stack         (optional — warns if missing)
+└── /pair-capability-verify-adoption      (optional — warns if missing)
 ```
 
 Optional skills degrade gracefully: if not installed, the process skill warns and continues without blocking.
@@ -149,6 +128,7 @@ Skills read from and write to adoption files in `.pair/adoption/`:
 |------|--------------|------------------|-------------------|
 | Tech stack | `tech/tech-stack.md` | `/pair-capability-verify-adoption`, `/pair-process-review` | `/pair-capability-assess-stack`, `/pair-process-bootstrap` |
 | Architecture | `tech/architecture.md` | `/pair-capability-verify-adoption`, `/pair-process-review` | `/pair-capability-assess-architecture` |
+| Security | `tech/security.md` + package `.pair.security.md` | `/pair-capability-verify-adoption`, `/pair-process-review` | `/pair-capability-assess-security` |
 | Way of working | `tech/way-of-working.md` | `/pair-process-implement`, `/pair-process-review`, `/pair-capability-estimate` | `/pair-capability-assess-methodology`, `/pair-capability-setup-pm` |
 | Decisions (ADR) | `tech/adr/*.md` | `/pair-capability-verify-adoption`, `/pair-process-review` | `/pair-capability-record-decision` |
 | Decisions (ADL) | `decision-log/*.md` | `/pair-capability-verify-adoption` | `/pair-capability-record-decision` |

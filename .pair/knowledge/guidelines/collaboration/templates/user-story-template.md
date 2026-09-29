@@ -8,11 +8,13 @@
 ## Initial Breakdown Template
 
 ```markdown
+## Title
+
+**[Area] [Obiettivo esplicativo]** — descrive cosa deve accadere, con l'attore se rilevante. Es: `[Security] L'utente deve poter accedere con MFA`, `[Web] I dati di fatturazione devono essere visibili nel profilo`, `[Billing] Il sistema deve gestire il rinnovo automatico degli abbonamenti`
+
 ## Story Statement
 
-**As a** [user persona]
-**I want** [general functionality or capability]
-**So that** [business value or user benefit]
+[Descrizione narrativa: chi è l'utente, cosa vuole fare e perché]
 
 ## Epic Context
 
@@ -88,11 +90,13 @@
 > (appended by `/pair-process-plan-tasks`).
 
 ```markdown
+## Title
+
+**[Area] [Obiettivo esplicativo]** — descrive cosa deve accadere, con l'attore se rilevante. Es: `[Security] L'utente deve poter accedere con MFA`, `[Web] I dati di fatturazione devono essere visibili nel profilo`, `[Billing] Il sistema deve gestire il rinnovo automatico degli abbonamenti`
+
 ## Story Statement
 
-**As a** [specific user persona from PRD]
-**I want** [detailed functionality and user interaction]
-**So that** [specific business value and user benefit]
+[Descrizione narrativa: chi è l'utente, cosa vuole fare e perché]
 
 **Where**: [Specific application/interface where user experiences the value]
 
@@ -112,17 +116,11 @@
 
 ### Functional Requirements
 
-**Given-When-Then Format:**
+1. [Cosa l'utente/sistema può fare o vede in questo scenario]
+2. [Comportamento atteso in condizione diversa]
+3. [Gestione errore o caso limite]
 
-1. **Given** [initial condition or context]
-   **When** [user action or trigger]
-   **Then** [expected system response and user outcome]
-
-2. **Given** [different context]
-   **When** [user action]
-   **Then** [expected outcome]
-
-[Continue for all functional scenarios]
+[Continua per tutti gli scenari funzionali]
 
 ### Business Rules
 

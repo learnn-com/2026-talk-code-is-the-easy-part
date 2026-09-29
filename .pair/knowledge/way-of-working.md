@@ -16,10 +16,10 @@ The process is designed to:
 
 | Symbol | Role                     | Description                       |
 | ------ | ------------------------ | --------------------------------- |
-| 🤖🤝👨‍💻  | **LLM + Dev Review**     | LLM proposes, Developer validates |
-| 👨‍💻💡🤖  | **Dev + LLM Suggestion** | Developer leads, LLM supports     |
-| 🤖⚡     | **LLM Agent**            | Full autonomy until completion    |
-| 👨‍💻    | **Dev**                  | Developer-only activity           |
+| 🤖🤝👨‍💻 | **LLM + Dev Review**     | LLM proposes, Developer validates |
+| 👨‍💻💡🤖 | **Dev + LLM Suggestion** | Developer leads, LLM supports     |
+| 🤖⚡   | **LLM Agent**            | Full autonomy until completion    |
+| 👨‍💻     | **Dev**                  | Developer-only activity           |
 
 ---
 
@@ -43,12 +43,12 @@ The process is designed to:
 
 ### Timeline & Card Types
 
-| Level                            | Duration (Sprints) | Value Stream       | Card Type              | Focus                                              |
-| -------------------------------- | ------------------ | ------------------ | ---------------------- | -------------------------------------------------- |
+| Level                             | Duration (Sprints) | Value Stream       | Card Type              | Focus                                              |
+| --------------------------------- | ------------------ | ------------------ | ---------------------- | -------------------------------------------------- |
 | 📘 **Induction**                  | One-time           | Product Foundation | **PRD**                | Product Vision, Market Fit, Technical Architecture |
 | 🚀 **Strategic Initiatives**      | 6-8 sprints        | Business Value     | **Initiative**         | Business Objectives, Value Proposition, Roadmap    |
 | 🧩 **Customer-Facing Iterations** | 2-4 sprints        | User Experience    | **Epic**               | Feature Sets, User Journeys, Integration Points    |
-| 🛠️ **Continuous Value Delivery** | 1 sprint           | Working Software   | **User Story (&Task)** | Deliverable Features, Code Quality, User Feedback  |
+| 🛠️ **Continuous Value Delivery**  | 1 sprint           | Working Software   | **User Story (&Task)** | Deliverable Features, Code Quality, User Feedback  |
 
 ---
 
@@ -59,8 +59,6 @@ The process is designed to:
 1. **🤖🤝👨‍💻 PRD Creation** (`/pair-process-specify-prd`) → Generate Product Requirements Document from user needs & market insights
 2. **🤖🤝👨‍💻 Bootstrap Checklist Completion** (`/pair-process-bootstrap`) → Define technical context and operational framework through comprehensive project assessment
 3. **🤖🤝👨‍💻 Initiative Prioritization** (`/pair-process-plan-initiatives`) → Identify and rank initiatives by impact
-4. **🤖🤝👨‍💻 Subdomain Analysis** (`/pair-process-map-subdomains`) → Map relevant functional subdomains
-5. **🤖🤝👨‍💻 Bounded Context Definition** (`/pair-process-map-contexts`) → Define boundaries to prevent ambiguity
 
 ### 🚀 Strategic Initiatives
 
@@ -78,4 +76,4 @@ The process is designed to:
 2. **🤖🤝👨‍💻 Code Review** (`/pair-process-review`) → Structured review with adoption compliance, merge flow, and parent cascade
 3. **🤖⚡ Status Update** → Automatic story/epic/initiative tracking update (handled by `/pair-process-implement` and `/pair-process-review`)
 
-> **Skill-enabled workflow**: Run `/pair-next` at session start to determine the most relevant skill. See [skills-guide.md](skills-guide.md) for the full catalog of 30 skills.
+> **Skill-enabled workflow**: Run `/pair-next` at session start to determine the most relevant skill. See [skills-guide.md](skills-guide.md) for the full catalog (29 skills: 9 process + 19 capability + 1 navigator).

@@ -1,0 +1,97 @@
+# Phase 6: Merge & Close — Detail
+
+Disclosed from [SKILL.md](SKILL.md) Phase 6 — only reached when the reviewer picked "Merge now" in Step 5.5, and only executed when the PR state synthesis says `ready-to-merge` (Step 6.0).
+
+### Step 6.0: Merge Precondition — PR state must be `ready-to-merge` (BLOCKING)
+
+The merge is permitted by the **synthesis**, not by the reviewer's enthusiasm — see [pr-states.md](../../../.pair/knowledge/guidelines/collaboration/project-management-tool/pr-states.md).
+
+1. **Act**: Re-read the current signals (gates, verdict, `risk:*` tier, human approvals on the current head) and re-run the Step 5.4 synthesis — signals may have changed since the verdict was submitted (a new commit, a tier raise, a dismissed approval).
+2. **Check**: `merge_allowed <state>` (from [`pr-state.sh`](../../../.pair/knowledge/assets/pr-state.sh)).
+3. **Verify**: State is `ready-to-merge` → continue to Step 6.1. Any other state → **HALT**, reporting the unmet condition (red gate, review not approved, or 🔴 without explicit human approval). Never bypass, dismiss, or re-run a required check to get a green merge button.
+
+### Step 6.1: Read Merge Strategy
+
+1. **Check**: Is merge strategy specified in [way-of-working.md](../../../.pair/adoption/tech/way-of-working.md)?
+2. **Skip**: If not specified, default to `squash`.
+3. **Act**: Read the adopted merge strategy (`squash`, `merge`, or `rebase`).
+4. **Verify**: Strategy determined.
+
+### Step 6.2: Prepare Merge Commit
+
+1. **Act**: Draft the merge commit message following the [commit template](../../../.pair/knowledge/guidelines/collaboration/templates/commit-template.md) (resolve override-first — [template resolution](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/template-resolution.md)):
+
+   ```text
+   [#<story-id>] feat: <story description>
+
+   - <summary of changes>
+   - Tasks: T-1, T-2, ..., T-N
+
+   Refs: #<story-id>
+   ```
+
+2. **Act** (BLOCKING): Present to reviewer for confirmation:
+
+   > **Merge commit message:**
+   >
+   > ```text
+   > [commit message]
+   > ```
+   >
+   > Confirm or edit?
+
+3. **Verify**: Reviewer confirms message.
+
+### Step 6.3: Merge PR
+
+The merge happens on the **code host**; the item writes in Step 6.4 happen on the **PM tool**. When `code-host` is absent (or names the PM tool) both are the same tool and the two steps are indistinguishable. See the [routing table](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/way-of-working-pm-resolution.md).
+
+1. **Act**: Merge the PR on the code host using the adopted strategy (for GitHub, per [github-implementation.md](../../../.pair/knowledge/guidelines/collaboration/project-management-tool/github-implementation.md)):
+   - MCP-first: use `merge_pull_request` with `merge_method` and `commit_title` + `commit_message`.
+   - CLI fallback: `gh pr merge <number> --squash --subject "<title>" --body "<body>"`.
+2. **Verify**: PR merged and closed on the code host.
+
+### Step 6.4: Update Story & Parent Cascade
+
+1. **Act**: Close the user story issue on the **PM tool** (an item write — never the code host; resolve the item id from the PR's `Refs: <issue-id>` cross-link when the tools are split). GitHub example:
+   - MCP: `issue_write` with `method = update`, `state = closed`, `state_reason = completed`.
+   - CLI: `gh issue close <story-number> --reason completed`.
+2. **Act**: Check parent epic — read sub-issues to determine if ALL stories are Done:
+   - MCP: `issue_read` with `method = get_sub_issues` on the epic.
+   - If all sub-issues closed → close the epic with `state_reason = completed`.
+   - If not all closed → leave epic open.
+3. **Act**: Check parent initiative — same cascade logic:
+   - If all epics closed → close the initiative.
+   - If not all closed → leave initiative open.
+4. **Verify**: Story closed. Epic and initiative updated if applicable.
+
+### Step 6.5: Branch Cleanup
+
+1. **Act**: Delete the feature branch on the code host (remote):
+   - CLI: `git push origin --delete <branch>`.
+2. **Act**: Remove the story's checkpoint if one exists — `.pair/working/checkpoints/<story-id>.md` — so completed-story state does not linger as stale context (per the task-scoped cleanup rule; see `/pair-capability-checkpoint`).
+3. **Verify**: Feature branch deleted and story checkpoint removed (if any existed).
+
+### Step 6.6: Post-Merge Manual Test Validation (Optional)
+
+1. **Check**: Is `/pair-capability-execute-manual-tests` installed? Does the project have a manual test suite (`qa/` directory)?
+2. **Skip**: If skill not installed or no test suite found → skip. Log: "Manual test validation skipped — no suite or skill not installed."
+3. **Act**: Compose `/pair-capability-execute-manual-tests` with `$scope = all`, `$priority = P0` (blockers only for fast validation).
+4. **Verify**: If PASS → note in review output. If FAIL → do NOT revert the merge. Instead:
+   - Create a GitHub issue for each Critical/Major failure.
+   - Append manual test results as addendum to the review report (PR comment).
+   - Warn: "Post-merge manual tests found failures. Issues created."
+
+## Output Format (merge)
+
+```text
+STORY DONE:
+├── Story:        [#ID: Title]
+├── PR:           [#PR-number — merged]
+├── PR state:     [ready-to-merge — synthesis verified at Step 6.0]
+├── Merge:        [squash | merge | rebase]
+├── Story:        Done
+├── Epic:         [#ID — Done | In Progress (X/Y stories done)]
+├── Initiative:   [#ID — Done | In Progress (X/Y epics done)]
+└── Manual Tests: [PASS | FAIL — N issues created | SKIPPED — no suite]
+```

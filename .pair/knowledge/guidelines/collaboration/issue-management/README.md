@@ -30,6 +30,8 @@ This framework does not cover:
 
 **[github-issues.md](github-issues.md)** - Issue management strategies for GitHub-based workflows
 
+**[azure-devops-issues.md](azure-devops-issues.md)** - Work item management and issue workflows for Azure DevOps
+
 ## Introduction to Issue Management Excellence
 
 ## Core Issue Architecture
@@ -84,6 +86,12 @@ The **IssueManagementOrchestrator** provides comprehensive issue handling throug
   - Directory structure for issue organization
   - Local automation scripts and workflows
   - Integration with development tools
+
+- **[azure-devops-issues.md](azure-devops-issues.md)** - Azure DevOps work item management
+  - Work item types and hierarchy (Epic, Feature, User Story, Task)
+  - Board and backlog workflows
+  - Integration with Azure DevOps Implementation and Tracking
+  - CLI and API usage for issue operations
 
 ## Core Concepts
 

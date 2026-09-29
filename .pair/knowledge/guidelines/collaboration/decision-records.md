@@ -106,7 +106,7 @@ Decision records are created via the `/pair-capability-record-decision` skill:
 | ------------------ | -------------------------------------------------------- |
 | `/pair-capability-record-decision` | Creates ADR or ADL, updates adoption files               |
 | `/pair-capability-assess-stack`    | Composes `/pair-capability-record-decision` for tech stack decisions     |
-| `/assess-*`        | Compose `/pair-capability-record-decision` for domain-specific decisions |
-| `/pair-process-implement`       | Composes `/pair-capability-record-decision` when implementation decisions arise |
-| `/pair-process-review`          | Composes `/pair-capability-record-decision` when review identifies undocumented decisions |
+| `/capability-assess-*`        | Compose `/pair-capability-record-decision` for domain-specific decisions |
+| `/pair-process-implement`          | Composes `/pair-capability-record-decision` when implementation decisions arise |
+| `/pair-process-review`             | Composes `/pair-capability-record-decision` when review identifies undocumented decisions |
 | `/pair-capability-verify-adoption` | Reads adoption files (informed by ADR/ADL) to check compliance |

@@ -6,27 +6,27 @@ Transform Product Requirements Documents (PRDs) into strategic initiatives throu
 
 **Role**: Product Owner/Manager (Collaborative Planning)
 **Process**: AI proposes & analyzes, Developer validates & decides
-**Skill**: When `/pair-process-plan-initiatives` is available, invoke it — it automates the operational steps of this workflow (PRD analysis, prioritization, initiative creation, dependency mapping). This how-to describes the workflow and its HALT conditions.
+**Skill**: When `/plan-initiatives` is available, invoke it — it automates the operational steps of this workflow (PRD analysis, prioritization, initiative creation, dependency mapping). This how-to describes the workflow and its HALT conditions.
 
 ## Skill Composition
 
-This how-to orchestrates the `/pair-process-plan-initiatives` skill.
+This how-to orchestrates the `/plan-initiatives` skill.
 
-| Skill               | Purpose                                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `/pair-process-plan-initiatives`  | Executes the full process: PRD analysis, P0/P1/P2 prioritization, initiative creation, dependency mapping.     |
-| `/pair-capability-write-issue`       | Composed by `/pair-process-plan-initiatives` — creates or updates initiative issues in the PM tool.                         |
+| Skill               | Purpose                                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `/plan-initiatives` | Executes the full process: PRD analysis, P0/P1/P2 prioritization, initiative creation, dependency mapping. |
+| `/write-issue`      | Composed by `/plan-initiatives` — creates or updates initiative issues in the PM tool.                     |
 
 > **If skills are not installed**, follow the manual workflow below.
 
 ## Orchestration Flow
 
 1. **Verify prerequisites**: bootstrap complete, PRD exists at [PRD.md](../../adoption/product/PRD.md), PM tool configured per [way-of-working.md](../../adoption/tech/way-of-working.md).
-2. **Invoke `/pair-process-plan-initiatives`**. The skill handles:
+2. **Invoke `/plan-initiatives`**. The skill handles:
    - Existing initiative detection (idempotent — skips already-created)
    - PRD analysis (business objectives, user value, constraints)
    - Prioritization (P0 Must-Have → P1 Should-Have → P2 Could-Have)
-   - Initiative creation via `/pair-capability-write-issue` with `$type: initiative`
+   - Initiative creation via `/write-issue` with `$type: initiative`
    - Dependency mapping and roadmap planning
 3. **Developer validates** each initiative when prompted by the skill.
 4. **Repeat** for additional initiatives or re-invoke to create missing ones.
@@ -83,4 +83,4 @@ This how-to orchestrates the `/pair-process-plan-initiatives` skill.
 - PRD: [`.pair/adoption/product/PRD.md`](../../adoption/product/PRD.md)
 - PM Tool: [PM Tool Guidelines](../guidelines/collaboration/project-management-tool/README.md)
 - Bootstrap: [Bootstrap Checklist](02-how-to-complete-bootstrap-checklist.md)
-- Next: [Define Subdomains](04-how-to-define-subdomains.md) or [Breakdown Epics](06-how-to-breakdown-epics.md)
+- Next: [Breakdown Epics](04-how-to-breakdown-epics.md)

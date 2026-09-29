@@ -6,7 +6,7 @@ Validate implemented code quality and ensure compliance with technical standards
 
 **Role**: Product Software Engineer (Code Review)
 **Process**: AI reviews comprehensively, Developer validates and decides
-**Skill**: When `/pair-process-review` is available, invoke it — it automates the operational steps of this workflow (quality gates, adoption compliance, DoD checking, review report). This how-to describes the workflow and its HALT conditions.
+**Skill**: When `/review` is available, invoke it — it automates the operational steps of this workflow (quality gates, adoption compliance, DoD checking, review report). This how-to describes the workflow and its HALT conditions.
 
 **CRITICAL FIRST STEP**: Before any review work begins, complete Phase 0: PR & Context Analysis to fully understand what needs to be validated.
 
@@ -81,6 +81,7 @@ Follow [project management tool guidelines](../guidelines/collaboration/project-
 1. **Quality gates** — run linter, type checker, tests per [quality standards](../guidelines/quality-assurance/quality-standards/README.md)
 2. **Code quality assessment** — readability, maintainability, naming per [code design guidelines](../guidelines/code-design/README.md)
 3. **ADR & adoption compliance** — scan for new technical decisions (libraries, patterns, technologies). **Missing ADR → HALT** (see Core Principles)
+4. **Cost assessment** — scan for cost signals per [cost assessment guidelines](../guidelines/quality-assurance/cost-assessment/README.md). **RED classification → HALT until human sign-off**
 
 ### Phase 2: Story & Requirements Validation
 
@@ -91,17 +92,18 @@ Follow [project management tool guidelines](../guidelines/collaboration/project-
 
 ### Phase 3: Review Report & Decision
 
-1. **Generate review report** using [code-review-template.md](../guidelines/collaboration/templates/code-review-template.md)
+1. **Generate review report** using [code-review-template.md](../guidelines/collaboration/templates/code-review-template.md) — always include a **Cost Assessment** section
 2. **Post report as PR comment** with all findings by severity
 3. **Set PR status** based on findings:
 
 #### Review Decisions:
 
-| Decision              | Condition                                               | Next Step                                                                |
-| --------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------ |
-| **APPROVED**          | All requirements met, quality gates pass                | Squash merge, mark story "Done"                                          |
-| **CHANGES REQUESTED** | Critical issues, missing ADR, failing tests, AC not met | Return to [10-how-to-implement-a-task.md](10-how-to-implement-a-task.md) |
-| **TECH DEBT**         | Only minor issues, tracked as debt                      | Approve PR, create debt items                                            |
+| Decision              | Condition                                                              | Next Step                                                                                                                           |
+| --------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --- |
+| **APPROVED**          | All requirements met, quality gates pass                               | Squash merge, mark story "Done"                                                                                                     |
+| **CHANGES REQUESTED** | Critical issues, missing ADR, failing tests, AC not met                | Return to [08-how-to-implement-a-task.md](08-how-to-implement-a-task.md)                                                            |
+| **COST REVIEW**       | RED cost signal detected — new paid service, AI calls, cloud resources | HALT merge, request human cost sign-off per [cost assessment guidelines](../guidelines/quality-assurance/cost-assessment/README.md) |
+| **TECH DEBT**         | Only minor issues, tracked as debt                                     | Approve PR, create debt items                                                                                                       |     |
 
 ### Phase 4: Completion & Integration
 
@@ -119,6 +121,8 @@ Follow [project management tool guidelines](../guidelines/collaboration/project-
 - [ ] Phase 0 completed — PR and story context loaded
 - [ ] ADR and adoption compliance validated for all new technical decisions
 - [ ] All technical standards verified against adoption guidelines
+- [ ] Cost assessment completed and classified (GREEN/YELLOW/RED) per [cost assessment guidelines](../guidelines/quality-assurance/cost-assessment/README.md)
+- [ ] If RED cost signal: human sign-off obtained before proceeding
 - [ ] Review report generated using [code-review-template.md](../guidelines/collaboration/templates/code-review-template.md)
 - [ ] Report posted as PR comment
 - [ ] PR status updated (pending/changes-requested/approved)
@@ -150,15 +154,16 @@ Follow [project management tool guidelines](../guidelines/collaboration/project-
 - [Testing Strategy](../guidelines/testing/test-strategy/README.md) — testing standards
 - [Quality Standards](../guidelines/quality-assurance/quality-standards/README.md) — quality gates
 - [Security Guidelines](../guidelines/quality-assurance/security/README.md) — security validation
+- [Cost Assessment](../guidelines/quality-assurance/cost-assessment/README.md) — cost signal classification and escalation rules
 
 ### Related Workflows
 
-- [10-how-to-implement-a-task.md](10-how-to-implement-a-task.md) — follow-up task implementation
-- [08-how-to-refine-a-user-story.md](08-how-to-refine-a-user-story.md) — story refinement
-- [09-how-to-create-tasks.md](09-how-to-create-tasks.md) — task creation for findings
+- [08-how-to-implement-a-task.md](08-how-to-implement-a-task.md) — follow-up task implementation
+- [06-how-to-refine-a-user-story.md](06-how-to-refine-a-user-story.md) — story refinement
+- [07-how-to-create-tasks.md](07-how-to-create-tasks.md) — task creation for findings
 
 ## Next Steps
 
 **For Approved Reviews**: → Merge completion and story closure
-**For Changes Requested**: → [10-how-to-implement-a-task.md](10-how-to-implement-a-task.md)
+**For Changes Requested**: → [08-how-to-implement-a-task.md](08-how-to-implement-a-task.md)
 **For Tech Debt Creation**: → Story creation and backlog management

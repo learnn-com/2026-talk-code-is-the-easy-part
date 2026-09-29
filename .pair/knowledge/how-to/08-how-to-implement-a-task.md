@@ -6,7 +6,7 @@ Transform task specifications into working, tested code by implementing **exactl
 
 **Role**: Product Software Engineer (Implementation)
 **Process**: AI implements, Developer reviews
-**Skill**: When `/pair-process-implement` is available, invoke it — it automates the operational steps of this workflow (branch creation, task iteration, commits, PR creation). This how-to describes the workflow and its HALT conditions.
+**Skill**: When `/implement` is available, invoke it — it automates the operational steps of this workflow (branch creation, task iteration, commits, PR creation). This how-to describes the workflow and its HALT conditions.
 
 **CRITICAL FIRST STEP**: Before any implementation work begins, complete Phase 0: Story & Task Analysis to fully understand what needs to be implemented.
 
@@ -129,7 +129,7 @@ Process tasks **sequentially**. For each task:
 
 ### Phase 4: Post-Review Merge
 
-After code review approval, re-invoke `/pair-process-implement` to merge and close:
+After code review approval, re-invoke `/implement` to merge and close:
 
 1. **Verify review approval** — HALT if not approved
 2. **Prepare merge commit message** — show to developer for confirmation
@@ -156,7 +156,7 @@ After code review approval, re-invoke `/pair-process-implement` to merge and clo
 
 ## Emergency Procedures
 
-- **Story/Task Issues**: Use [08-refine-story](08-how-to-refine-a-user-story.md) or [09-create-tasks](09-how-to-create-tasks.md)
+- **Story/Task Issues**: Use [06-refine-story](06-how-to-refine-a-user-story.md) or [07-create-tasks](07-how-to-create-tasks.md)
 - **Technical Blockers**: HALT, request task updates, consult relevant guidelines
 - **Process Issues**: Reset to last stable state, escalate to developer
 
@@ -184,10 +184,10 @@ After code review approval, re-invoke `/pair-process-implement` to merge and clo
 
 ### Related Workflows
 
-- [08-how-to-refine-a-user-story.md](08-how-to-refine-a-user-story.md) — story refinement
-- [09-how-to-create-tasks.md](09-how-to-create-tasks.md) — task creation
-- [11-how-to-code-review.md](11-how-to-code-review.md) — code review
+- [06-how-to-refine-a-user-story.md](06-how-to-refine-a-user-story.md) — story refinement
+- [07-how-to-create-tasks.md](07-how-to-create-tasks.md) — task creation
+- [09-how-to-code-review.md](09-how-to-code-review.md) — code review
 
 ## Next Steps
 
-→ [11-how-to-code-review.md](11-how-to-code-review.md)
+→ [09-how-to-code-review.md](09-how-to-code-review.md)

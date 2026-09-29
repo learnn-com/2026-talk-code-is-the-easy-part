@@ -30,6 +30,8 @@ This framework does not cover:
 
 **[filesystem-automation.md](filesystem-automation.md)** - Local script automation and filesystem-based workflows
 
+**[azure-devops-automation.md](azure-devops-automation.md)** - Azure DevOps board rules and pipeline automation
+
 ## Introduction to Collaboration Automation
 
 This section covers automation approaches for project management workflows, development processes, and tool integrations to improve team efficiency and consistency.
@@ -52,6 +54,14 @@ This section covers automation approaches for project management workflows, deve
   - Directory management automation
   - Local workflow scripts and utilities
   - Integration with development tools
+
+### Azure DevOps Automation
+
+- **[azure-devops-automation.md](azure-devops-automation.md)** - Azure DevOps board and pipeline automation
+  - Board rules and work item automation
+  - Pipeline integration and status sync
+  - Cross-service automation patterns
+  - Integration with Azure DevOps Issues and Tracking
 
 ## Core Automation Areas
 

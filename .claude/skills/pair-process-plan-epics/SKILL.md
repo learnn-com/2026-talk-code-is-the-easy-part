@@ -28,9 +28,8 @@ Transform strategic initiatives into comprehensive epic breakdowns. Each epic de
 1. **Check**: Prerequisites present?
    - Bootstrap complete: [way-of-working.md](../../../.pair/adoption/tech/way-of-working.md), PRD, architecture, tech-stack
    - Initiatives exist in PM tool
-   - Bounded contexts defined (recommended, not required): [`adoption/tech/boundedcontext/`](../../../.pair/adoption/tech/boundedcontext)
 2. **Skip**: If all present, proceed to Step 1.
-3. **Act**: If bootstrap incomplete → **HALT**. If bounded contexts missing, warn and proceed.
+3. **Act**: If bootstrap incomplete → **HALT**.
 4. **Verify**: Context loaded, PM tool accessible.
 
 ### Step 1: Initiative Selection
@@ -67,7 +66,7 @@ Transform strategic initiatives into comprehensive epic breakdowns. Each epic de
    - Business objectives and success metrics.
    - User value propositions and journey stages.
    - Technical requirements from architecture and tech-stack.
-   - Bounded context alignment for service boundaries.
+   - Architecture alignment for service boundaries.
 2. **Act**: Determine epic structure:
    - **Epic 0 assessment**: for new projects, assess if bootstrap epic is needed.
    - **Value-driven grouping**: natural feature groupings following user workflows.
@@ -136,7 +135,6 @@ EPICS COMPLETE:
 ## Graceful Degradation
 
 - If `/pair-capability-write-issue` is not installed, warn and provide formatted epic content for manual PM tool entry.
-- If bounded contexts are not defined, proceed with PRD and initiative analysis only.
 - If PM tool is not accessible, produce epic documents and ask developer to create manually.
 
 ## Notes

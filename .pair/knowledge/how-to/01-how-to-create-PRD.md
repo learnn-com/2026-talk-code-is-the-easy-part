@@ -6,7 +6,7 @@ Transform product ideas into comprehensive Product Requirements Documents throug
 
 **Role**: Product Manager (PRD Creation)
 **Process**: AI gathers and drafts, Developer validates and approves
-**Skill**: `/pair-process-specify-prd` — see skill for operational details (question templates, checklist, writing procedures)
+**Skill**: `/specify-prd` — see skill for operational details (question templates, checklist, writing procedures)
 
 ## Session State Management
 
@@ -33,7 +33,7 @@ PRD CREATION STATE:
 2. Study quality standards from [PRD example](../assets/PRD_example.md)
 3. Create section-by-section checklist from template
 
-See `/pair-process-specify-prd` Phase 1 for operational details.
+See `/specify-prd` Phase 1 for operational details.
 
 ### Phase 1: Information Gathering
 
@@ -46,7 +46,7 @@ Collect all information needed to complete PRD sections.
 
 **HALT** — do NOT proceed to drafting until all sections have information.
 
-See `/pair-process-specify-prd` Phase 2 for question templates and hypothesis patterns.
+See `/specify-prd` Phase 2 for question templates and hypothesis patterns.
 
 ### Phase 2: PRD Creation
 
@@ -56,7 +56,7 @@ Create comprehensive PRD using gathered information.
 2. Follow [PRD template](../assets/PRD_template.md) structure exactly
 3. Match quality standard from [PRD example](../assets/PRD_example.md)
 
-See `/pair-process-specify-prd` Phase 3 for writing procedures and quality checks.
+See `/specify-prd` Phase 3 for writing procedures and quality checks.
 
 ### Phase 3: Review and Approval
 
@@ -68,7 +68,7 @@ Refine PRD through developer feedback until approved.
 
 **HALT** — never finalize without developer approval.
 
-See `/pair-process-specify-prd` Phase 4 for review workflow.
+See `/specify-prd` Phase 4 for review workflow.
 
 ## Final Approval Checklist
 

@@ -10,7 +10,7 @@ author: Foomakers
 Validate a work item against Definition of Done criteria. Two sources of truth:
 
 - **[definition-of-done.md](../../../.pair/knowledge/guidelines/quality-assurance/quality-standards/definition-of-done.md)** — universal DoD checklist (18 criteria covering requirements, code standards, testing, security, performance, accessibility, deployment, documentation).
-- **Adoption files** (`../../../.pair/adoption/tech/`) — project-specific criteria derived from adopted architecture, tech-stack, and way-of-working decisions.
+- **Adoption files** [`.pair/adoption/tech/`](../../../.pair/adoption/tech) — project-specific criteria derived from adopted architecture, tech-stack, and way-of-working decisions.
 
 Only check criteria that are not already passing.
 

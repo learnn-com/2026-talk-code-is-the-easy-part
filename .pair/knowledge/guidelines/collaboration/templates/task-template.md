@@ -7,8 +7,7 @@
 
 **Task ID:** [T-XXX]  
 **Priority:** [P0/P1/P2]  
-**Estimated Hours:** [Time estimate]  
-**Bounded Context:** [Specific implementation domain]
+**Estimated Hours:** [Time estimate]
 
 ## Summary
 
@@ -43,9 +42,8 @@
 **Technical Design:**
 [High-level approach to implementing the task]
 
-#### Bounded Context & Modules:
+#### Modules:
 
-- **Bounded Context:** [Specific context for implementation]
 - **Affected Modules:** [Specific components that will be modified]
 
 #### Files to Modify/Create:
@@ -126,7 +124,7 @@ before the footer).
 
 ### T-1: [Task title]
 
-**Priority:** P0 | **Estimated Hours:** 4h | **Bounded Context:** [Context]
+**Priority:** P0 | **Estimated Hours:** 4h
 
 **Summary:** [Brief description]
 
@@ -150,7 +148,7 @@ before the footer).
 **Implementation Approach:**
 
 - Technical Design: [Approach]
-- Bounded Context & Modules: [Context and modules]
+- Modules: [modules]
 - Files to Modify/Create:
   - `path/to/file` - [Purpose]
 - Technical Standards: [Links to guidelines]

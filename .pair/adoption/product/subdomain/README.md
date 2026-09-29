@@ -50,4 +50,4 @@ High-level data/control flow (MVP). Arrow direction: **From → To** means “pr
 
 ---
 
-For details on each subdomain, see the linked files above. Next recommended step: `/pair-process-map-contexts`.
+For details on each subdomain, see the linked files above. Next recommended step: `/pair-capability-map-contexts`.

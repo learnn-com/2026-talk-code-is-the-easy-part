@@ -107,6 +107,29 @@ Test Results: ✅ All Passing / ❌ X Failing
 Performance Tests: ✅ Within Limits / ⚠️ Degradation Detected
 ```
 
+## Cost Assessment
+
+### Classification
+
+- [ ] 🟢 **LOW** — No significant cost signals detected
+- [ ] 🟡 **MEDIUM** — Potential cost impact, human awareness required
+- [ ] 🔴 **HIGH** — New cost vector introduced, human sign-off mandatory before merge
+
+### Cost Signals Detected
+
+| Signal                     | Type                               | Impact                          |
+| -------------------------- | ---------------------------------- | ------------------------------- |
+| [e.g. new OpenAI API call] | [Paid API / Cloud resource / etc.] | [Estimated impact or "unknown"] |
+
+### Human Sign-off Required?
+
+- [ ] **No** — GREEN or YELLOW with confirmed budget fit
+- [ ] **Yes — BLOCKING** — RED signal, merge halted until cost approval obtained
+
+**Notes:** [cost estimate, pricing tier, budget context, or "none detected"]
+
+> Reference: [Cost Assessment Guidelines](../../quality-assurance/cost-assessment/README.md)
+
 ## Performance Review
 
 ### Performance Analysis
@@ -122,9 +145,9 @@ Performance Tests: ✅ Within Limits / ⚠️ Degradation Detected
 
 | Metric           | Before | After | Change | Acceptable |
 | ---------------- | ------ | ----- | ------ | ---------- |
-| Response Time    | XXXms  | XXXms | +/-XX% | ✅/❌        |
-| Memory Usage     | XXXMb  | XXXMb | +/-XX% | ✅/❌        |
-| Database Queries | XX     | XX    | +/-XX  | ✅/❌        |
+| Response Time    | XXXms  | XXXms | +/-XX% | ✅/❌      |
+| Memory Usage     | XXXMb  | XXXMb | +/-XX% | ✅/❌      |
+| Database Queries | XX     | XX    | +/-XX  | ✅/❌      |
 
 ## Documentation Review
 

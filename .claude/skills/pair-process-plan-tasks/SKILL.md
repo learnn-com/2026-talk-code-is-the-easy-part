@@ -57,7 +57,7 @@ Transform a refined user story into specific, actionable implementation tasks. T
 1. **Act**: Analyze the story requirements against adoption files:
    - Read [architecture.md](../../../.pair/adoption/tech/architecture.md) for architectural patterns.
    - Read [tech-stack.md](../../../.pair/adoption/tech/tech-stack.md) for implementation choices.
-   - Map story to [bounded contexts](../../../.pair/adoption/tech/boundedcontext).
+   - Identify affected system areas (services/modules) relevant to the story.
 2. **Act**: Present technical context summary to developer for validation.
 3. **Verify**: Developer approves. Context established.
 
@@ -65,14 +65,14 @@ Transform a refined user story into specific, actionable implementation tasks. T
 
 1. **Act**: Decompose the story into tasks by mapping acceptance criteria to implementation work:
    - Map each AC to one or more tasks.
-   - Group tasks by bounded context.
+   - Group tasks by system area (service/module) where helpful.
    - Identify task types: Development, Documentation, Configuration, Research.
    - Ensure every AC is covered by at least one task.
 2. **Act**: Identify dependencies between tasks and determine execution order.
 3. **Act**: Present task list to developer:
 
    > Proposed [N] tasks for `#[ID]`:
-   > [Numbered list with task title, type, bounded context, estimated hours]
+   > [Numbered list with task title, type, system area, estimated hours]
    > AC coverage: [all ACs mapped]
    > Approve or adjust?
 
@@ -83,7 +83,7 @@ Transform a refined user story into specific, actionable implementation tasks. T
 For each task (skipping tasks that already exist in the story body):
 
 1. **Act**: Define the task following the [task-template.md](../../../.pair/knowledge/guidelines/collaboration/templates/task-template.md):
-   - Task Information (ID, priority, hours, bounded context)
+   - Task Information (ID, priority, hours, system area)
    - Summary and type
    - Description with implementation context
    - Acceptance criteria (deliverable, quality, integration, verification)
@@ -151,7 +151,7 @@ TASK BREAKDOWN COMPLETE:
 
 - If `/pair-capability-write-issue` is not installed, warn and provide the formatted Task Breakdown section for manual PM tool update.
 - If the PM tool is not accessible, produce the task breakdown content and ask the developer to update manually.
-- If adoption files (architecture, tech-stack, bounded contexts) are not found, skip technical context alignment and warn.
+- If adoption files (architecture, tech-stack) are not found, skip technical context alignment and warn.
 
 ## Notes
 

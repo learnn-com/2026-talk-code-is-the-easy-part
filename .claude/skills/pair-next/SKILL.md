@@ -17,8 +17,6 @@ Analyze project state and recommend the single most relevant next skill to invok
 | ------------------ | ------------------ | ----------------------------------------------- |
 | `/pair-process-specify-prd`     | Induction          | Create or update Product Requirements Document  |
 | `/pair-process-bootstrap`       | Induction          | Orchestrate full project setup                  |
-| `/pair-process-map-subdomains`  | Strategic          | Define DDD subdomains from PRD                  |
-| `/pair-process-map-contexts`    | Strategic          | Define bounded contexts from subdomains         |
 | `/pair-process-plan-initiatives`| Strategic          | Create strategic initiatives from PRD           |
 | `/pair-process-plan-epics`      | Strategic          | Break initiatives into epics                    |
 | `/pair-process-plan-stories`    | Sprint Planning    | Break epics into user stories                   |
@@ -62,10 +60,8 @@ Read the following files and classify each as **populated** or **template**:
 | File                                                                                               | Template indicator                                        |
 | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | [.pair/adoption/product/PRD.md](../../../.pair/adoption/product/PRD.md)                               | Contains `[Product/feature name]` or `[Creation date]`    |
-| [.pair/adoption/product/subdomain/README.md](../../../.pair/adoption/product/subdomain/README.md)     | Contains `[list here core subdomain]` or `[PROJECT_NAME]` |
 | [.pair/adoption/tech/architecture.md](../../../.pair/adoption/tech/architecture.md)                   | Contains only placeholder headings with no real content   |
 | [.pair/adoption/tech/tech-stack.md](../../../.pair/adoption/tech/tech-stack.md)                       | Contains only placeholder headings with no real content   |
-| [.pair/adoption/tech/boundedcontext/README.md](../../../.pair/adoption/tech/boundedcontext/README.md) | Contains only placeholder headings with no real content   |
 | [.pair/adoption/tech/way-of-working.md](../../../.pair/adoption/tech/way-of-working.md)               | No PM tool specified or only template text                |
 
 **Template detection rule**: A file is a template if it contains square-bracket placeholders (e.g., `[Product/feature name]`) or if its substantive sections contain no project-specific content.
@@ -76,8 +72,6 @@ Read the following files and classify each as **populated** or **template**:
 | --- | --------------------------------------------------------- | ----------------- | -------------------------------- |
 | 1   | PRD.md is template                                        | `/pair-process-specify-prd`    | Product vision must come first   |
 | 2   | PRD.md populated AND 3+ tech adoption files are templates | `/pair-process-bootstrap`      | Project needs foundational setup |
-| 3   | subdomain/README.md is template                           | `/pair-process-map-subdomains` | Domain decomposition needed      |
-| 4   | boundedcontext/README.md is template                      | `/pair-process-map-contexts`   | Architecture boundaries needed   |
 
 If any of the above matched, output the suggestion and stop.
 
@@ -124,8 +118,6 @@ Present results as:
 PROJECT STATE:
 ├── PRD: [populated | template]
 ├── Bootstrap: [complete | incomplete — N/M adoption files populated]
-├── Subdomains: [populated | template]
-├── Bounded Contexts: [populated | template]
 ├── PM Tool: [tool name | not configured]
 └── Backlog: [summary of current items]
 

@@ -9,26 +9,26 @@ Transform refined User Stories into specific, actionable development tasks throu
 
 ## Skill Composition
 
-This how-to orchestrates the `/pair-process-plan-tasks` skill.
+This how-to orchestrates the `/plan-tasks` skill.
 
 | Skill          | Purpose                                                                                                                       |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `/pair-process-plan-tasks`  | Executes the full task breakdown: story analysis, task identification, task definition, documentation. Task-level idempotent. |
-| `/pair-capability-write-issue` | Composed by `/pair-process-plan-tasks` — creates task issues and updates the story body in the PM tool.                                    |
+| `/plan-tasks`  | Executes the full task breakdown: story analysis, task identification, task definition, documentation. Task-level idempotent. |
+| `/write-issue` | Composed by `/plan-tasks` — creates task issues and updates the story body in the PM tool.                                    |
 
 > **If skills are not installed**, follow the manual workflow below.
 
 ## Orchestration Flow
 
 1. **Verify prerequisites**: PM tool configured per [way-of-working.md](../../adoption/tech/way-of-working.md), story is in Refined state with clear acceptance criteria.
-2. **Invoke `/pair-process-plan-tasks`** with optional `$story` argument. The skill handles:
+2. **Invoke `/plan-tasks`** with optional `$story` argument. The skill handles:
    - Story selection (highest-priority Refined, or specified `$story`)
    - Existing task detection (task-level idempotency — creates only missing tasks)
-   - Technical context analysis (architecture, tech-stack, bounded contexts)
-   - Task identification (AC-to-task mapping, bounded context grouping)
+   - Technical context analysis (architecture, tech-stack)
+   - Task identification (AC-to-task mapping)
    - Task definition (full task template per task)
    - Task Breakdown appending (condensed TA + checklist + Dependency Graph + AC Coverage + detailed tasks)
-   - PM tool update via `/pair-capability-write-issue`
+   - PM tool update via `/write-issue`
 3. **Developer validates** task list and definitions when prompted.
 4. **Repeat** for each story requiring task breakdown.
 
@@ -49,13 +49,11 @@ This how-to orchestrates the `/pair-process-plan-tasks` skill.
 ### Phase 3: Technical Context Analysis
 
 - Review [architecture.md](../../adoption/tech/architecture.md), [tech-stack.md](../../adoption/tech/tech-stack.md)
-- Map story to [bounded contexts](../../adoption/tech/boundedcontext/)
 - Identify affected modules and integration points
 
 ### Phase 4: Task Identification & Decomposition
 
 - Map each acceptance criterion to one or more tasks
-- Group tasks by bounded context
 - Classify task types: Development, Documentation, Configuration, Research
 - Identify dependencies between tasks
 - Ensure 100% AC coverage
@@ -64,7 +62,7 @@ This how-to orchestrates the `/pair-process-plan-tasks` skill.
 
 For each task, follow the [Task Template](../guidelines/collaboration/templates/task-template.md):
 
-- Task info (ID, priority, hours, bounded context)
+- Task info (ID, priority, hours)
 - Summary, type, description
 - Acceptance criteria (deliverable, quality, integration, verification)
 - Implementation approach (design, modules, files, standards)
@@ -93,7 +91,6 @@ See the **Task Breakdown Format for Story Body** section in [task-template.md](.
 
 - [ ] Story refinement verified (Refined state)
 - [ ] Task identification from acceptance criteria mapping
-- [ ] All tasks specify bounded context and affected modules
 - [ ] Technical standards referenced in each task
 - [ ] Task Breakdown appended to story body (checklist + Dependency Graph + AC Coverage + details)
 - [ ] Template structure followed for each task
@@ -102,14 +99,12 @@ See the **Task Breakdown Format for Story Body** section in [task-template.md](.
 
 ## HALT Conditions
 
-- **Story not refined** — must be in Refined state. Suggest `/pair-process-refine-story`.
+- **Story not refined** — must be in Refined state. Suggest `/refine-story`.
 - **PM tool not configured** — complete [bootstrap](02-how-to-complete-bootstrap-checklist.md) first.
-- **Bounded context unknown** — verify [bounded context docs](../../adoption/tech/boundedcontext/).
 
 ## Key Principles
 
 - **AC-driven decomposition** — every task traces back to acceptance criteria
-- **Bounded context mapping** — each task specifies its implementation domain
 - **Task-level idempotency** — re-invoke safely; existing tasks are detected and skipped
 - **Append only** — never modify existing story content; add Task Breakdown at end
 - **Checkboxes for tracking** — only in the task list, not in task detail sections
@@ -118,11 +113,11 @@ See the **Task Breakdown Format for Story Body** section in [task-template.md](.
 
 ## References
 
-- Input: [Story Refinement](08-how-to-refine-a-user-story.md)
+- Input: [Story Refinement](06-how-to-refine-a-user-story.md)
 - Task Template: [Task Template](../guidelines/collaboration/templates/task-template.md)
 - Story Template: [User Story Template](../guidelines/collaboration/templates/user-story-template.md)
 - PM Tool: [PM Tool Guidelines](../guidelines/collaboration/project-management-tool/README.md)
 - Architecture: [Architecture Guidelines](../guidelines/architecture/README.md)
 - Code Design: [Code Design Guidelines](../guidelines/code-design/README.md)
 - Testing: [Testing Strategy](../guidelines/testing/test-strategy/README.md)
-- Next: [Implement a Task](10-how-to-implement-a-task.md)
+- Next: [Implement a Task](08-how-to-implement-a-task.md)

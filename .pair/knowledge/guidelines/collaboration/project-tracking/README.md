@@ -30,6 +30,8 @@ This framework does not cover:
 
 **[github-tracking.md](github-tracking.md)** - GitHub-based project tracking strategies
 
+**[azure-devops-tracking.md](azure-devops-tracking.md)** - Azure DevOps board setup and project tracking strategies
+
 ## Introduction to Project Tracking Excellence
 
 ## Core Tracking Architecture
@@ -201,6 +203,14 @@ This project tracking framework ensures systematic progress monitoring, predicti
   - File movement for status management
   - Simple reporting with shell scripts
   - Local metrics and velocity calculations
+
+### Azure DevOps Project Tracking
+
+- **[azure-devops-tracking.md](azure-devops-tracking.md)** - Azure DevOps board and tracking
+  - Board setup and area/iteration configuration
+  - Work item hierarchy and progress rollup
+  - Dashboards and metrics
+  - Integration with Azure DevOps Implementation and Automation
 
 ## Core Tracking Concepts
 
