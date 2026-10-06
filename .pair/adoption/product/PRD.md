@@ -4,7 +4,7 @@
 
 **Product Name:** Learnn  
 **Version:** 1.1  
-**Date:** 12 aprile 2026  
+**Date:** 2020  
 **Owner:** Product Team (fondatore / leadership prodotto)
 
 ### Executive Summary
@@ -305,8 +305,8 @@ Piattaforma **subscription-based** con catalogo di contenuti originali (lezioni,
 
 ### Research & Data
 
-- Documento di business Learnn (aprile 2026).
-- Specifica piattaforma completa + MVP webapp mobile-first + elenco Fase 1 / Fase 2 (aprile 2026).
+- Documento di business Learnn (2020).
+- Specifica piattaforma completa + MVP webapp mobile-first + elenco Fase 1 / Fase 2 (2020).
 
 ### Mockups & Prototypes
 
@@ -319,4 +319,4 @@ Piattaforma **subscription-based** con catalogo di contenuti originali (lezioni,
 ### Document approval
 
 - **Status:** Approved (product owner)  
-- **Date:** 12 aprile 2026
+- **Date:** 2020
