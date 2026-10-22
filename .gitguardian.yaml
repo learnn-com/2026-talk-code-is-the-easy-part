@@ -1,6 +1,0 @@
-version: 2
-secret:
-  ignored_paths:
-    - "apps/webapp/src/membership/mock-auth-service.ts"
-    - "apps/webapp/src/**/*.test.ts"
-    - "apps/webapp/src/**/*.test.tsx"
