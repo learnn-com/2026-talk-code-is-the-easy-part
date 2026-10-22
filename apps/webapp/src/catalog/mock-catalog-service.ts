@@ -25,7 +25,8 @@ export function createMockCatalogService({
 
 // Demo knobs (README): VITE_CATALOG_FAIL=true forces the error state, VITE_CATALOG_LATENCY_MS sets the delay.
 export function createDefaultCatalogService(): CatalogService {
-  const latency = Number(import.meta.env.VITE_CATALOG_LATENCY_MS)
+  const raw = String(import.meta.env.VITE_CATALOG_LATENCY_MS ?? '').trim()
+  const latency = raw === '' ? NaN : Number(raw)
   return createMockCatalogService({
     fail: import.meta.env.VITE_CATALOG_FAIL === 'true',
     latencyMs: Number.isFinite(latency) && latency >= 0 ? latency : undefined,
