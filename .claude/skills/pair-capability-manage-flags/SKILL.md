@@ -1,6 +1,6 @@
 ---
 name: pair-capability-manage-flags
-description: "Manages feature flag lifecycle: creation, activation, deactivation, and cleanup. Follows feature-flags guidelines. Idempotent: detects existing flags, shows current state, offers lifecycle actions rather than re-creating."
+description: "Manages a feature flag's lifecycle — creation, activation, deactivation, cleanup — per the feature-flags guidelines. Invoke directly to create/retire a flag or check its current state; idempotent."
 version: 0.4.1
 author: Foomakers
 ---
@@ -24,7 +24,7 @@ Manage feature flags throughout their lifecycle: creation, activation, deactivat
    - Flag types (Release, Experiment, Ops, Permission)
    - Implementation patterns (boolean, percentage-based, conditional)
    - Lifecycle management and cleanup strategies
-2. **Verify**: Guidelines loaded. If not found, use framework-agnostic defaults.
+2. **Verify**: Flag types, implementation patterns, and cleanup strategy above are known from feature-flags.md before Step 2 scans the codebase; if the file isn't found, the framework-agnostic defaults stand in for them.
 
 ### Step 2: Detect Existing Flags
 
@@ -124,7 +124,8 @@ When invoked **independently**:
 
 ## Graceful Degradation
 
-- If [feature-flags.md](../../../.pair/knowledge/guidelines/technical-standards/feature-flags.md) is not found, provide framework-agnostic patterns: simple boolean flags with environment variables.
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (guideline missing → fall back to framework-agnostic patterns: simple boolean flags with environment variables) for the standard scenarios. Additional cases:
+
 - If no feature flag tool is configured, use code-level flags (constants, config files) rather than a flag service.
 - If no existing flags are found in the codebase, report empty inventory and offer to create the first flag.
 - If cleanup would break active code paths, warn and require explicit developer confirmation.
@@ -132,7 +133,7 @@ When invoked **independently**:
 ## Notes
 
 - This skill **modifies files** — it creates, activates, deactivates, and removes feature flag code and configuration.
-- **Idempotent**: invoking `create` on an existing flag shows its current state instead of re-creating. Invoking `activate` on an active flag confirms the state. Invoking `cleanup` always requires explicit confirmation.
+- **Idempotent** — see [idempotency convention](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/idempotency.md). This skill's check: `create` on an existing flag shows its current state instead of re-creating; `activate` on an active flag confirms the state; `cleanup` always requires explicit confirmation.
 - **Stale flag detection**: flags inactive for more than 30 days are flagged as stale. Cleanup is recommended but not forced.
 - Flag naming conventions should follow the project's adopted coding standards (e.g., `SCREAMING_SNAKE_CASE` for env vars, `camelCase` for code constants).
 - Cleanup is the most critical lifecycle phase — leftover flags create technical debt. The `status` action helps identify cleanup candidates.

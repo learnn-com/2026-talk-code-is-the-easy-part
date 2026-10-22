@@ -11,8 +11,14 @@ Establish enterprise-grade standards for AI development that maximize developmen
 ### Standards and Guidelines
 
 - **[AI Tools](ai-tools.md)** - AI development tool selection, configuration, and best practices
+- **[Agent Harness Framework](agent-harness/README.md)** - per-harness configuration guides (pi, opencode, Claude Code) — the harness that runs pair's process
 - **[Documentation Standards](documentation-standards.md)** - AI-specific documentation requirements and patterns
 - **[MCP Integration](mcp-integration.md)** - Model Context Protocol implementation and integration standards
+- **[Skill Conventions](skill-conventions/README.md)** - Single-source shared conventions for the `SKILL.md` corpus (resolution cascade, idempotency, graceful degradation, template resolution, PM-tool + code-host resolution, and more)
+- **[Process Profiles](process-profiles.md)** - Schema, built-in profiles (`default`, `poc`, `custom`) and error cases for the process subset a project declares in `way-of-working.md`
+- **[Step Catalogue](step-catalogue.md)** - The catalogued process steps a profile names: stable id, how-to guide, executable skill and prerequisites
+- **[Macro-Phase Modes](macro-phase-modes.md)** - The `/pair-next --mode` facades (`analysis`, `implementation`, `review`): the one mode ↔ step table, exit conditions, wrong-context and HALT rules
+- **[Shrink Discipline](shrink-discipline.md)** - Fewer words per section, same information: rules, per-area targets, before/after, agent style, minimal code; measured by `pair-cli tokens`
 
 ### Key Focus Areas
 

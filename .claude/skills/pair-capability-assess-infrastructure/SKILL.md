@@ -1,54 +1,45 @@
 ---
 name: pair-capability-assess-infrastructure
-description: "Assess infrastructure strategy using resolution cascade (Argument > Adoption > Assessment). Reads infrastructure guidelines, proposes cloud/CI/CD/deployment choices, writes infrastructure.md adoption, composes /pair-capability-record-decision. Idempotent."
-version: 0.4.1
+description: "Evaluates and recommends infrastructure strategy — cloud provider, CI/CD pipeline, deployment pattern, IaC, environments — when the choice is open. Output-only: emits a proposal + target for /pair-capability-record-decision to persist."
+version: 0.7.0
 author: Foomakers
 ---
 
 # /pair-capability-assess-infrastructure — Infrastructure Assessment
 
-Evaluate and decide on infrastructure strategy: cloud provider, CI/CD pipeline, deployment patterns, IaC approach, and environments. Follows the resolution cascade.
+Evaluate and recommend infrastructure strategy: cloud provider, CI/CD pipeline, deployment patterns, IaC approach, and environments. Follows the resolution cascade. **Output-only**: produces a proposal (rendered infrastructure.md content + target) plus a report — writes no files. Persistence is delegated to `/pair-capability-record-decision`.
 
 ## Arguments
 
 | Argument  | Required | Description                                                                |
 | --------- | -------- | -------------------------------------------------------------------------- |
 | `$choice` | No       | Override: skip assessment, use this infrastructure choice directly (e.g. `github-actions`, `aws`) |
+| `$approval` | No     | Approval-round mode: `interactive` (default — every round runs as written) or `auto` (ask nothing — three outcomes, all reported on the `Approval` line: a proposal is accepted as-is; an existing recorded value is kept and the delta reported unapplied; a call the skill cannot make alone yields **no proposal**, reported unresolved). See [approval rounds](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/approval-rounds.md). |
 
 ## Composed Skills
 
-| Skill              | Type       | Required                                               |
-| ------------------ | ---------- | ------------------------------------------------------ |
-| `/pair-capability-record-decision` | Capability | Yes — records infrastructure decision as ADR or ADL    |
+**Output-only** — composes no skill, writes no files; the caller persists via `/pair-capability-record-decision` (see [Composition Interface](#composition-interface)).
 
-## Adoption File
+## Proposal Target
+
+The rendered adoption content is destined for this file — the caller writes it via `/pair-capability-record-decision`:
 
 - **Target**: [adoption/tech/infrastructure.md](../../../.pair/adoption/tech/infrastructure.md) — core infrastructure sections
 - **Ownership**: Full file, except observability section (owned by /pair-capability-assess-observability)
 
 ## Algorithm
 
+### Scoped Context (package-local override)
+
+Opt-in. When the central adoption file carries a `## Package-Local Adoption` router, resolve the rule set per [scoped context resolution](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/scoped-context-resolution.md) (diff-scoped here: globals + `<pkg>/.pair/` of the packages the diff touches, nothing else); report a central↔local conflict, a dangling router entry, and — when the [complexity signals](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/package-local-adoption.md#activation-proposal) fire — PROPOSE the override and wait for approval, never activate. No router ⇒ unchanged behaviour.
+
 ### Step 1: Resolution Cascade
 
-#### Path A — Argument Override
+Read [resolution cascade](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/resolution-cascade.md) for the generic Path A/B/C mechanics (check → skip → act → verify). Paths A and B carry their `$approval` qualification **there** — it is never restated per skill; only the rounds Path C adds below are qualified here.
 
-1. **Check**: Is `$choice` provided?
-2. **Skip**: If not provided, go to Path B.
-3. **Act**: Confirm the choice with the developer. Check for conflicts with existing adoption.
-4. **Verify**: Developer confirms. Proceed to Step 3.
-
-#### Path B — Adoption Exists
-
-1. **Check**: Does [adoption/tech/infrastructure.md](../../../.pair/adoption/tech/infrastructure.md) exist and is it populated?
-2. **Skip**: If not populated or missing, go to Path C.
-3. **Act**: Read current adoption. Confirm it's valid.
-4. **Check**: Does a corresponding decision record exist?
-5. **Act**: If decision record missing, compose `/pair-capability-record-decision` to backfill.
-6. **Verify**: Done — exit skill.
-
-#### Path C — Full Assessment
-
-1. **Act**: Proceed to Step 2.
+- **Path A delta**: override argument is `$choice`. On confirm, proceed to Step 3.
+- **Path B delta**: adoption check is [adoption/tech/infrastructure.md](../../../.pair/adoption/tech/infrastructure.md), populated. If a corresponding decision record is missing, report the gap (this skill still writes nothing; the caller persists a backfill via `/pair-capability-record-decision`).
+- **Path C delta**: proceed to Step 2.
 
 ### Step 2: Read Guidelines
 
@@ -61,7 +52,7 @@ Evaluate and decide on infrastructure strategy: cloud provider, CI/CD pipeline, 
 2. **Act**: Read project context:
    - [adoption/product/PRD.md](../../../.pair/adoption/product/PRD.md) — scale, budget, compliance
    - [adoption/tech/architecture.md](../../../.pair/adoption/tech/architecture.md) — architecture pattern (infra must support it)
-3. **Verify**: Guidelines and context loaded.
+3. **Verify**: Every file listed in 1-2 above has been read; any that's missing follows [Graceful Degradation](#graceful-degradation) (ask the developer directly) instead of silently proceeding to Step 3.
 
 ### Step 3: Evaluate Options
 
@@ -80,60 +71,65 @@ Evaluate and decide on infrastructure strategy: cloud provider, CI/CD pipeline, 
    > - Cloud: [provider or "none"] — [rationale]
    > - IaC: [tool or "not needed"] — [rationale]
 
-3. **Verify**: Developer approves.
+3. **Verify** (`$approval: interactive`): Developer approves. Under `auto` the recommendation above is accepted as-is and reported in the Output Format, never asked. <!-- approval-round: kind=confirm; auto=accept -->
 
-### Step 4: Write Adoption File
+### Step 4: Render Adoption Proposal
 
-1. **Act**: Write or update [adoption/tech/infrastructure.md](../../../.pair/adoption/tech/infrastructure.md):
+1. **Act**: Render the infrastructure.md content — the ready-to-write body for the target file:
    - Concise, prescriptive statements
-   - Preserve observability section if it exists (owned by /pair-capability-assess-observability)
-2. **Verify**: Adoption file written and consistent.
+   - Scope to the core infrastructure sections so the caller's write preserves the observability section (owned by /pair-capability-assess-observability)
+   - **Optional**: when the project has both a deploy source and a billing account, propose a `## Cost & Billing Telemetry` declaration — shape and keys in the [cost & billing telemetry guideline](../../../.pair/knowledge/guidelines/quality-assurance/quality-monitoring/cost-billing-telemetry.md). Pointers only, never a credential. Never required: absent or incomplete is the supported default (`not available`)
+2. **Verify**: The rendered `content` and its `target` are ready to emit.
 
-### Step 5: Record Decision
+### Step 5: Emit Proposal
 
-1. **Act**: Compose `/pair-capability-record-decision`:
-   - `$type`: `architectural` (infrastructure decisions affect system structure)
-   - `$topic`: `infrastructure-strategy`
-   - `$summary`: "[Summary of key infrastructure choices]"
-2. **Verify**: ADR created. Adoption consistent.
+1. **Act**: Emit the proposal to the caller:
+   - `content`: the rendered infrastructure.md body from Step 4
+   - `target`: [adoption/tech/infrastructure.md](../../../.pair/adoption/tech/infrastructure.md) (core sections)
+   - `decision-metadata`: `$type: architectural` (infrastructure decisions affect system structure), `$topic: infrastructure-strategy`, `$summary: "[Summary of key infrastructure choices]"`
+   - plus the human-facing report (see Output Format)
+2. **Verify**: Proposal emitted — see [record-decision invocation contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md) for the persistence contract (persistence is always the caller's responsibility, delegated to `/pair-capability-record-decision`).
 
 ## Output Format
 
+Follows the [Decision Shape](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/output-shapes.md#decision-shape).
+
 ```text
-ASSESSMENT COMPLETE:
+ASSESSMENT COMPLETE (output-only — no files written):
 ├── Domain:    Infrastructure
 ├── Path:      [Argument Override | Adoption Exists | Full Assessment]
 ├── Decision:  [key infrastructure choices]
-├── Adoption:  [infrastructure.md — written | confirmed | updated]
-├── Record:    [ADR path — created | exists | backfilled]
-└── Status:    [Complete | Confirmed existing]
+├── Proposal:  [content rendered for infrastructure.md]
+├── Target:    adoption/tech/infrastructure.md (core sections)
+├── Persist:   [caller composes /record-decision(content, target) → ADR]
+├── Approval:  [interactive — approved | auto — accepted as-is | auto — existing kept, delta not applied | auto — UNRESOLVED, no proposal]
+└── Status:    [Proposal ready | Confirmed existing | Unresolved — no proposal]
 ```
 
 ## Composition Interface
 
+See [record-decision invocation contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md) for the generic tuple + Input/Output/Persistence shape.
+
 When composed by `/pair-process-bootstrap`:
 
 - **Input**: `/pair-process-bootstrap` invokes during Phase 2.
-- **Output**: Returns decision summary and adoption file path.
+- **Persistence**: `/pair-process-bootstrap` composes `/pair-capability-record-decision` to write infrastructure.md and record the ADR.
 
-When invoked **independently**:
-
-- Full interactive flow. Developer commits changes.
+When invoked **independently**: the human (or agent) persists the proposal by composing `/pair-capability-record-decision`, then commits.
 
 ## Edge Cases
 
-- **Project doesn't need infrastructure** (e.g. pure library, CLI tool): Write minimal infrastructure.md noting CI/CD only, no cloud deployment.
-- **Adoption file partially exists**: Fill gaps, preserve existing content.
-- **Observability section exists**: Preserve it — owned by /pair-capability-assess-observability.
+- **Project doesn't need infrastructure** (e.g. pure library, CLI tool): Render a minimal infrastructure.md noting CI/CD only, no cloud deployment, for the caller to persist.
+- **Adoption file partially exists**: Render content that fills gaps; the caller's write preserves existing content.
+- **Observability section exists**: Leave it untouched — owned by /pair-capability-assess-observability. Scope the rendered content to core sections.
+- **Cost & Billing Telemetry section exists**: Leave it untouched — project-owned declaration read by `/pair-capability-assess-cost` report mode; propose changes only when asked. Absent: do not add it unprompted.
 
 ## Graceful Degradation
 
-- If infrastructure guidelines not found, use minimal assessment: ask developer for CI/CD and deployment preferences.
-- If `/pair-capability-record-decision` not installed, warn and skip recording.
-- If adoption directory doesn't exist, create it.
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (guideline missing → ask developer for CI/CD and deployment preferences directly) and [record-decision contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md) (persistence unavailable → proposal stands as a report) for the standard scenarios. No additional cases.
 
 ## Notes
 
-- Infrastructure decisions are typically **architectural** → produce ADR.
-- **Section ownership**: /pair-capability-assess-observability owns observability section of infrastructure.md if that section exists there; otherwise observability goes in its own section of way-of-working or a separate file.
+- Infrastructure decisions are typically **architectural** → the caller records them as an ADR.
+- **Section ownership**: /pair-capability-assess-observability owns the observability section of infrastructure.md if that section exists there; otherwise observability goes in its own section of way-of-working or a separate file. The single adoption writer is `/pair-capability-record-decision`.
 - Educational content (cloud concepts, IaC principles) stays in guidelines.

@@ -1,7 +1,7 @@
 ---
 name: pair-capability-classify
 description: "Builds the classification matrix by applying the quality model (KB default + `tech/risk-matrix.md` adoption delta) — from the story context in refinement, from the code/diff in review (confirm-or-raise, never lower). Emits chromatic tags only when the adoption declares the matrix→tag projection. Composed by /pair-process-refine-story (refinement context) and /pair-process-review (review context); invoke directly to classify a card or PR on demand."
-version: 0.2.0
+version: 0.2.1
 author: Foomakers
 ---
 
@@ -12,7 +12,7 @@ Compile the classification matrix for a card or PR by **applying the [quality mo
 Two invocation contexts, one model:
 
 - **refinement** — evidence is the **story context** (declared/estimated scope, touched subdomains, cross-context integrations). Shift-left (R1.3): the matrix exists before code does.
-- **review** — evidence is the **code/diff** (observed footprint, `/pair-capability-assess-security` verdict, `/capability-assess-coupling` verdict). The review value is a **floor**: it confirms or **raises** the refinement tier, and **never lowers** it (quality-model §3.2, D17).
+- **review** — evidence is the **code/diff** (observed footprint, `/pair-capability-assess-security` verdict, `/pair-capability-assess-coupling` verdict). The review value is a **floor**: it confirms or **raises** the refinement tier, and **never lowers** it (quality-model §3.2, D17).
 
 ## Arguments
 
@@ -52,16 +52,16 @@ Every rule resolves through the quality model's cascade — **Argument (`$overri
 Per `$context`, collect the source for each dimension (quality-model §3.1, "Source" column):
 
 - **refinement** — from the story body: declared scope (change/diff-risk proxy), the subdomain classification of what it touches (business impact), touched-path heuristics (security relevance), and — if `subdomain/`/`boundedcontext/` artifacts exist — the volatility of touched subdomains plus the cross-context integrations the story introduces (coupling balance).
-- **review** — from the diff: observed footprint (change/diff risk), the `/pair-capability-assess-security` review verdict (security relevance, quality-model §3.1), and the `/capability-assess-coupling` verdict on the diff (coupling balance). An unreadable diff (huge/binary) falls back to file-path/service-level evidence and flags **low confidence** in the `<details>`.
+- **review** — from the diff: observed footprint (change/diff risk), the `/pair-capability-assess-security` review verdict (security relevance, quality-model §3.1), and the `/pair-capability-assess-coupling` verdict on the diff (coupling balance). An unreadable diff (huge/binary) falls back to file-path/service-level evidence and flags **low confidence** in the `<details>`.
 
-**Coupling sources absent** (no subdomain/bounded-context artifacts in refinement, `/capability-assess-coupling` not installed in review) ⇒ the coupling dimension is reported **not assessed**, excluded from the tier max, and never blocks (quality-model §3.1, D21).
+**Coupling sources absent** (no subdomain/bounded-context artifacts in refinement, `/pair-capability-assess-coupling` not installed in review) ⇒ the coupling dimension is reported **not assessed**, excluded from the tier max, and never blocks (quality-model §3.1, D21).
 
 ### Step 3: Compile the Matrix
 
-1. **Act**: Resolve each of the five dimensions (Service/domain criticality, Change/diff risk, Business impact, Security relevance, Coupling balance) to `green`/`yellow`/`red` per quality-model §3.1, applying the resolution cascade (Step 1's effective rule set) to each — e.g. a service listed `High` in the Criticality Table overrides the Medium default (AC5); a service **not** listed in an existing table resolves to conservative High.
+1. **Act**: Resolve each of the five dimensions (Service/domain criticality, Change/diff risk, Business impact, Security relevance, Coupling balance) to `green`/`yellow`/`red` per quality-model §3.1, applying the resolution cascade (Step 1's effective rule set) to each — e.g. a service listed `High` in the Criticality Table overrides the Medium default; a service **not** listed in an existing table resolves to conservative High.
 2. **Act**: **Risk tier = max(assessed dimensions)** (quality-model §3.2), projected as `risk:green|yellow|red`. Compute the **cost class** independently as the highest detected signal (quality-model §3.3, `cost:green|yellow|orange|red`) — always written to the body, never part of the risk max.
 3. **Act** (review only, never-lower): read the refinement-time tier from the story body — **an item read ⇒ `pm-tool`** ([routing table](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/way-of-working-pm-resolution.md)), the opposite side from Step 4's PR write. **When the tools are split, resolve the story's item id from the PR's `Refs:` cross-link line first** (composed from `/pair-process-review` the story is already in session; the standalone `$target: <PR>` path has only the PR, and without the id the refinement floor is unreadable — the never-lower rule would silently degrade to the review value alone, the D17 violation this point exists to prevent). `Refs:` absent on a split project ⇒ report the floor as **unreadable** and keep the review value, flagged, rather than treating it as `green`. The review tier is `max(review-computed, refinement-tier)` per dimension and overall — the review pass may **raise** a dimension (e.g. the diff reveals a schema migration ⇒ `risk:red`) but **never lowers** a value the story's refinement already set (quality-model §3.2, D17). A `$override` may raise further; it never lowers below the model result.
-4. **Verify**: Every dimension is `green`/`yellow`/`red`/`not assessed`; the tier equals the max of the assessed dimensions; in review, no dimension is below its refinement value. **Determinism**: the same card/PR under the same model + adoption yields an identical matrix and tier on every run (AC4).
+4. **Verify**: Every dimension is `green`/`yellow`/`red`/`not assessed`; the tier equals the max of the assessed dimensions; in review, no dimension is below its refinement value. **Determinism**: the same card/PR under the same model + adoption yields an identical matrix and tier on every run.
 
 ### Step 4: Write the Matrix to the Body (always)
 
@@ -102,7 +102,7 @@ CLASSIFY ([refinement | review]):
 | --- | --- | --- | --- |
 | Service/domain criticality | [g/y/r] | [Criticality Table | KB default] | |
 | Change/diff risk | [g/y/r] | [story scope | diff footprint] | |
-| Business impact | [g/y/r] | [subdomain class] | |
+| Business impact | [g/y/r] | [subdomain class | Overrides: business-impact.trivial-diff] | |
 | Security relevance | [g/y/r] | [path heuristic | assess-security verdict] | |
 | Coupling balance | [g/y/r | not assessed] | [subdomain volatility + integrations | assess-coupling verdict | absent] | |
 
@@ -113,13 +113,13 @@ Confidence: [high | low — unreadable diff, path/service-level fallback | low �
 
 ## Worked Examples
 
-Hand-traced fixtures that pin the two behavioural invariants — **determinism** (AC4) and **never-lower** (D17) — to concrete matrices. Each example lists every dimension value and the resulting tier so the rule (`risk` tier = the max of the assessed dimensions, floored by the refinement pass in review) is auditable, not merely asserted. These fixtures are conformance-checked (`src/conformance/capability-classify.test.ts`): each must carry all five dimensions and a tier that follows the max-rule — and, in review, the refinement floor.
+Hand-traced fixtures that pin the two behavioural invariants — **determinism** and **never-lower** (D17) — to concrete matrices. Each example lists every dimension value and the resulting tier so the rule (`risk` tier = the max of the assessed dimensions, floored by the refinement pass in review) is auditable, not merely asserted. These fixtures are conformance-checked (`src/conformance/classify.test.ts`): each must carry all five dimensions and a tier that follows the max-rule — and, in review, the refinement floor.
 
 Legend — dimension values are `green` | `yellow` | `red` | `not assessed`; `not assessed` is excluded from the max (D21). Tier is `risk:<green|yellow|red>`.
 
 ### Worked Example 1 — Determinism (refinement)
 
-Same story context classified on two independent runs yields an identical matrix (AC4). Story context: an internal supporting-subdomain UI tweak — reposition the settings icon; no data-model change, no security-relevant paths, no cross-context integration, no DDD artifacts present.
+Same story context classified on two independent runs yields an identical matrix. Story context: an internal supporting-subdomain UI tweak — reposition the settings icon; no data-model change, no security-relevant paths, no cross-context integration, no DDD artifacts present.
 
 | Run | Service/domain criticality | Change/diff risk | Business impact | Security relevance | Coupling balance | Tier |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -154,7 +154,7 @@ Review raw max = red (Change/diff risk, Security relevance), so `max(red, yellow
 
 **Composed by `/pair-process-refine-story`** (refinement): invoked with `$context: refinement` after the technical analysis. Returns the matrix; `/pair-process-refine-story` embeds the 1-line + `<details>` into the story body (D22) and lets `classify` apply/propose tags. Absent ⇒ `/pair-process-refine-story` warns and continues without a matrix (graceful degradation — never HALTs on classify's absence).
 
-**Composed by `/pair-process-review`** (review, Phase 1): invoked with `$context: review` against the PR diff. Produces the review-time matrix (confirm-or-raise, never lower). The `/pair-capability-assess-security` verdict (Phase 2) feeds the **Security relevance** dimension and the `/capability-assess-coupling` verdict feeds **Coupling balance** — both raise-only, consistent with the review floor. Any raise to `risk:red` is surfaced for `/pair-process-review`'s own decision step; `classify` never blocks or merges — it has no such authority.
+**Composed by `/pair-process-review`** (review, Phase 1): invoked with `$context: review` against the PR diff. Produces the review-time matrix (confirm-or-raise, never lower). The `/pair-capability-assess-security` verdict (Phase 2) feeds the **Security relevance** dimension and the `/pair-capability-assess-coupling` verdict feeds **Coupling balance** — both raise-only, consistent with the review floor. Any raise to `risk:red` is surfaced for `/pair-process-review`'s own decision step; `classify` never blocks or merges — it has no such authority.
 
 **Invoked directly**: classify a single card or PR on demand; same algorithm, `$context` auto-detected.
 
@@ -174,15 +174,15 @@ Review raw max = red (Change/diff risk, Security relevance), so `max(red, yellow
 See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (guideline missing → minimal run, ask directly; adoption file missing → run against KB defaults; the target's host unreachable — PM tool for a card, code host for a PR → matrix returned to caller, tagging deferred). Additional cases:
 
 - **`/pair-capability-assess-security` not available** (review): fall back to the path-heuristic security relevance (quality-model §3.1) instead of the verdict; note the fallback.
-- **`/capability-assess-coupling` not installed / no DDD artifacts**: coupling dimension "not assessed" (never a HALT).
+- **`/pair-capability-assess-coupling` not installed / no DDD artifacts**: coupling dimension "not assessed" (never a HALT).
 - **`/pair-process-refine-story` or `/pair-process-review` absent as caller**: run standalone via direct invocation.
 
 ## Notes
 
 - **Applies the model, owns no criteria** (D18) — grep-verifiable: no green/yellow/red threshold lives in this file that is not a reference back to quality-model §3. Consumers downstream (gate, `/pair-process-review`, `/pair-next`) read tags only.
 - **Built exactly twice per work item** (D17): refinement (story context) and review (diff). Review **confirms or raises, never lowers** — the never-lower rule is a floor over the refinement tier, per dimension and overall.
-- **Deterministic**: same input (card/PR + model + adoption) ⇒ same matrix and tags every run (AC4). No randomness, no time-dependence.
+- **Deterministic**: same input (card/PR + model + adoption) ⇒ same matrix and tags every run. No randomness, no time-dependence.
 - **Reading budget** (D22): the body/report output is 1 line + `<details>`, never an inline table.
 - **Writes two kinds of thing itself**: the matrix into the card/PR body (Step 4) and — only on a confirmed first-run proposal — the `## Tag Projection` registry section in `tech/risk-matrix.md` (Step 5, the quality-model §5 self-write precedent, mirroring `/pair-capability-verify-quality`'s Custom Gate Registry). Adoption **decision** content is never self-written — that routes through `/pair-capability-record-decision`; the Tag Projection section is config-registry state, not a decision record.
-- **No eligibility tag**: automation eligibility is an adoption-declared filter over classification tags (`risk:green`, …), not a special tag — `/pair-next` consumes it generically (quality-model §5, D18).
+- **No eligibility tag**: automation eligibility is an adoption-declared filter over classification tags (a single literal label, e.g. `risk:green` — schema in [automation-policy.md](../../../.pair/knowledge/guidelines/collaboration/automation/automation-policy.md)), not a special tag — `/pair-next` consumes it generically (quality-model §5, D18).
 - **Idempotent** — see [idempotency convention](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/idempotency.md): re-running on an already-classified card recomputes the same matrix; a declared or opted-out Tag Projection is never re-proposed. Review re-runs recompute against the current diff (a raise can happen commit-to-commit; a lower never can).

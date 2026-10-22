@@ -1,13 +1,13 @@
 # Phase 4: Post-Review Merge — Detail
 
-Disclosed from [SKILL.md](SKILL.md) Phase 4 — only reached when `/pair-process-implement` is re-invoked after code review approval (typically via `/pair-process-review`), to merge and close the story.
+Disclosed from [SKILL.md](./SKILL.md) Phase 4 — only reached when `/pair-process-implement` is re-invoked after code review approval (typically via `/pair-process-review`), to merge and close the story.
 
 ### Step 4.1: Merge Precondition — PR state must be `ready-to-merge` (BLOCKING)
 
 This is the author-side merge path, and it carries the **same** precondition as the reviewer-side one (`/pair-process-review` Phase 6, Step 6.0): the merge is permitted by the **synthesis**, never by "a review happened". An approving verdict alone is not the condition — a 🔴 PR with an approved review and no explicit human approval must not merge here either (D10). See [pr-states.md](../../../.pair/knowledge/guidelines/collaboration/project-management-tool/pr-states.md).
 
 1. **Act**: Re-read the **current** signals on the PR's head commit — gate checks, the review verdict, the `risk:*` tier, and non-author human approvals (they may have changed since the verdict: a new commit, a tier raise, a dismissed approval).
-2. **Act**: Synthesize with the shipped evaluator [`pr-state.sh`](../../../.pair/knowledge/assets/pr-state.sh) — `resolve_pr_state <gates> <review> <tier> <explicit_approval>`, then `merge_allowed <state>`. Tier comes from the label via `resolve_tier`; the human-approval input uses `human_approval_jq_filter` (non-bot, non-author, on the current head), never a raw approval count.
+2. **Act**: Synthesize with the shipped evaluator [`pr-state.sh`](../../../.pair/knowledge/assets/pr-state.sh) — `resolve_pr_state <gates> <review> <tier> <explicit_approval>`, then `merge_allowed <state>`. Tier comes from the label via `resolve_tier`; the human-approval input uses `human_approval_jq_filter` (non-bot, non-author, on the current head), never a raw approval count. **Evaluate it with `REVIEW_IDENTITY_LOGIN` EXPORTED into that shell** — read it from the host on this run (`gh api "repos/<owner>/<repo>/actions/variables/REVIEW_IDENTITY_LOGIN" --jq .value`), the same value `pair-explicit-approval` resolves as `${{ vars.REVIEW_IDENTITY_LOGIN }}`. **The filter's login clause is inert without it**: unset, `.user.login != env.REVIEW_IDENTITY_LOGIN` compares against the empty string and is true for every account, so a `bot-user` review identity's own APPROVED review — cast outside the flow — counts here as the non-author human approval, `merge_allowed` passes, and a `risk:red` PR merges with no human approval. The CI job that carries the same clause is a different evaluation and only exists where `Review enforcement` is enabled and branch protection applied; it does not cover this path.
 3. **Skip**: Review not submitted yet → **HALT**, wait for review completion.
 4. **Verify**: State is `ready-to-merge` → continue to Step 4.2. Any other state → **HALT**, naming the unmet condition (red gate, review not approved / still pending, or 🔴 without an explicit human approval). Never bypass, dismiss, or re-run a required check to get a green merge button.
 
@@ -41,10 +41,10 @@ This is the author-side merge path, and it carries the **same** precondition as 
 
 ### Step 4.4: Update Story & Parents
 
-1. **Act**: Update user story status to "Done" on the **PM tool** — state transitions always happen there, never on the code host (resolve the item id from the PR's `Refs: <issue-id>` cross-link when the two tools differ).
-2. **Act**: Check parent epic — if ALL stories in the epic are Done, update epic status to "Done".
-3. **Act**: Check parent initiative — if ALL epics in the initiative are Done, update initiative status to "Done".
-4. **Verify**: Story and parent hierarchy updated recursively.
+1. **Act**: Update user story status to "Done" on the **PM tool** — state transitions always happen there, never on the code host (resolve the item id from the PR's `Refs: <issue-id>` cross-link when the two tools differ). Every state write here follows the order the item writer states once and this step applies unchanged — **membership, then a read that confirms it, then the state field** (`/pair-capability-write-issue` Step 7b): a state field cannot be written on an item the tracked view does not hold, and the add that puts it there can exit 0 having done nothing. The invariant is applied **by reference**, never re-derived.
+2. **Act**: Check parent epic — if ALL stories in the epic are Done, update epic status to "Done", under the same order.
+3. **Act**: Check parent initiative — if ALL epics in the initiative are Done, update initiative status to "Done", under the same order.
+4. **Verify**: A **read** of the story — and of each parent this run transitioned — shows `Done`. Report **what the read observed**, never what the calls returned: nobody re-runs the merge phase, so a state this step reports without reading is terminal.
 
 ### Step 4.5: Clean Up the Checkpoint
 
