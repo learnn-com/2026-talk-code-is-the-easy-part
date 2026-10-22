@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "series": [
+    {
+      "id": "funnel-discovery-webinar",
+      "kind": "webinar",
+      "title": "Funnel discovery",
+      "professional": "Luca Mastella",
+      "role": "Designer",
+      "durationMinutes": 80,
+      "episodes": 16,
+      "coverUrl": "/covers/funnel-discovery.jpg"
+    },
+    {
+      "id": "funnel-discovery-corso",
+      "kind": "course",
+      "title": "Funnel discovery avanzato",
+      "professional": "Luca Mastella",
+      "role": "Designer",
+      "durationMinutes": 80,
+      "episodes": 12,
+      "coverUrl": "/covers/funnel-discovery-flip.jpg"
+    },
+    {
+      "id": "growth-hacking-base",
+      "kind": "course",
+      "title": "Growth hacking da zero",
+      "professional": "Luca Mastella",
+      "role": "Designer",
+      "durationMinutes": 24,
+      "episodes": 6,
+      "coverUrl": "/covers/funnel-discovery.jpg"
+    },
+    {
+      "id": "growth-hacking-live",
+      "kind": "webinar",
+      "title": "Growth hacking dal vivo",
+      "professional": "Luca Mastella",
+      "role": "Designer",
+      "durationMinutes": 18,
+      "episodes": 4,
+      "coverUrl": "/covers/funnel-discovery-flip.jpg"
+    },
+    {
+      "id": "user-research-corso",
+      "kind": "course",
+      "title": "User research per prodotti digitali",
+      "professional": "Luca Mastella",
+      "role": "Designer",
+      "durationMinutes": 125,
+      "episodes": 10,
+      "coverUrl": "/covers/funnel-discovery.jpg"
+    },
+    {
+      "id": "onboarding-webinar",
+      "kind": "webinar",
+      "title": "Onboarding che converte",
+      "professional": "Luca Mastella",
+      "role": "Designer",
+      "durationMinutes": 60,
+      "episodes": 3,
+      "coverUrl": "/covers/funnel-discovery-flip.jpg"
+    },
+    {
+      "id": "design-system-corso",
+      "kind": "course",
+      "title": "Design system in pratica",
+      "professional": "Luca Mastella",
+      "role": "Designer",
+      "durationMinutes": 95,
+      "episodes": 8,
+      "coverUrl": "/covers/funnel-discovery.jpg"
+    },
+    {
+      "id": "pricing-webinar",
+      "kind": "webinar",
+      "title": "Pricing e posizionamento",
+      "professional": "Luca Mastella",
+      "role": "Designer",
+      "durationMinutes": 45,
+      "episodes": 5,
+      "coverUrl": "/covers/funnel-discovery-flip.jpg"
+    }
+  ]
+}

@@ -24,6 +24,17 @@ pnpm quality-gate              # ts:check, test, lint, prettier:fix
 - Sessione mock: token in `localStorage` (`learnn.session`); illeggibile o corrotta = nessuna sessione.
 - Email sconosciuta e password errata danno lo stesso errore.
 
+## Catalogo mock (slider Home "Corsi e webinar")
+
+Dati dietro l'interfaccia `CatalogService` (Catalog & Publishing); dataset JSON versionato `src/catalog/series.json` (8 elementi, foto dai mockup in `public/covers`).
+
+| Variabile (`.env.local`)       | Effetto                                          |
+| ------------------------------ | ------------------------------------------------ |
+| `VITE_CATALOG_FAIL=true`       | simula errore del servizio (messaggio + Riprova) |
+| `VITE_CATALOG_LATENCY_MS=2000` | latenza simulata (default 600 ms), vedi skeleton |
+
+Frecce precedente/successiva solo da 768px in su; su mobile solo swipe. Le card non sono interattive.
+
 ## Deploy statico (S3 + CloudFront)
 
 Routing lato client (`/login`, `/`): CloudFront deve rispondere `index.html` (custom error 403/404 → `/index.html`, 200).
