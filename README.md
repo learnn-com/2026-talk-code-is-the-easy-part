@@ -66,3 +66,7 @@ pnpm pair run --root IN-01 --autonomous
 
 - Omar Diop, Head of Engineering @ Learnn: [LinkedIn](https://it.linkedin.com/in/omar-diop-dev), [omardiop.com](https://omardiop.com)
 - Gianluca Carucci, CTO & COO @ Learnn: [LinkedIn](https://it.linkedin.com/in/rucka)
+
+## Webapp
+
+App React in [`apps/webapp`](apps/webapp/README.md): avvio, utenti demo del login mock, build statica.
