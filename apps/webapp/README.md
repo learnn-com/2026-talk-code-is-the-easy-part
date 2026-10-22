@@ -18,6 +18,8 @@ pnpm quality-gate              # ts:check, test, lint, prettier:fix
 | `abbonato@learnn.com` | `password!42` |
 | `demo@learnn.com`     | `Demo2026!`   |
 
+- `abbonato@learnn.com` ha una foto profilo (SVG inline), `demo@learnn.com` no (mostra le iniziali).
+- Header Home: avatar a destra, menu con nome utente e Logout; il logout cancella sempre la sessione locale, anche se il servizio fallisce.
 - Latenza simulata: 600 ms.
 - Sessione mock: token in `localStorage` (`learnn.session`); illeggibile o corrotta = nessuna sessione.
 - Email sconosciuta e password errata danno lo stesso errore.

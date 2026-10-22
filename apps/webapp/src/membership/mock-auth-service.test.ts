@@ -45,6 +45,36 @@ describe('mock auth service', () => {
     expect(make().getSession()).toEqual(session)
   })
 
+  it('the demo user with a photo logs in with photoUrl, the other without', async () => {
+    const withPhoto = await make().login(DEMO.email, DEMO.password)
+    const without = await make().login(DEMO_2.email, DEMO_2.password)
+    expect(withPhoto.user.photoUrl).toEqual(expect.any(String))
+    expect(without.user.photoUrl).toBeUndefined()
+  })
+
+  it('keeps photoUrl across a reload', async () => {
+    const session = await make().login(DEMO.email, DEMO.password)
+    expect(make().getSession()?.user.photoUrl).toBe(session.user.photoUrl)
+  })
+
+  it('accepts a persisted session without photoUrl (pre-existing sessions)', () => {
+    const legacy = { token: 't', user: { email: 'a@b.it', name: 'A' } }
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(legacy))
+    expect(make().getSession()).toEqual(legacy)
+  })
+
+  it('treats a non-string photoUrl as a corrupted session', () => {
+    const raw = JSON.stringify({ token: 't', user: { email: 'a@b.it', name: 'A', photoUrl: 3 } })
+    localStorage.setItem(SESSION_STORAGE_KEY, raw)
+    expect(make().getSession()).toBeNull()
+  })
+
+  it('logout without a session does not throw', () => {
+    const service = make()
+    expect(() => service.logout()).not.toThrow()
+    expect(service.getSession()).toBeNull()
+  })
+
   it('logout clears the persisted session', async () => {
     const service = make()
     await service.login(DEMO.email, DEMO.password)

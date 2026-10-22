@@ -2,10 +2,20 @@ import { InvalidCredentialsError, type AuthService, type Session } from './auth-
 
 export const SESSION_STORAGE_KEY = 'learnn.session'
 
+// Inline SVG: the demo photo needs no network.
+const DEMO_PHOTO = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#3f3f46"/><circle cx="32" cy="24" r="12" fill="#e4e4e7"/><path d="M8 64c0-14 10-22 24-22s24 8 24 22z" fill="#e4e4e7"/></svg>',
+)}`
+
 // Demo users: documented in the README, not secrets.
 const DEMO_USERS = [
-  { email: 'abbonato@learnn.com', password: 'password!42', name: 'Abbonato Demo' },
-  { email: 'demo@learnn.com', password: 'Demo2026!', name: 'Demo Learnn' },
+  {
+    email: 'abbonato@learnn.com',
+    password: 'password!42',
+    name: 'Abbonato Demo',
+    photoUrl: DEMO_PHOTO,
+  },
+  { email: 'demo@learnn.com', password: 'Demo2026!', name: 'Demo Learnn', photoUrl: undefined },
 ]
 
 interface Options {
@@ -21,7 +31,8 @@ function isSession(value: unknown): value is Session {
     typeof user === 'object' &&
     user !== null &&
     typeof user.email === 'string' &&
-    typeof user.name === 'string'
+    typeof user.name === 'string' &&
+    (user.photoUrl === undefined || typeof user.photoUrl === 'string')
   )
 }
 
@@ -45,7 +56,7 @@ export function createMockAuthService({
       if (!user) throw new InvalidCredentialsError()
       const session: Session = {
         token: newToken(),
-        user: { email: user.email, name: user.name },
+        user: { email: user.email, name: user.name, photoUrl: user.photoUrl },
       }
       getStorage().setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
       return session
