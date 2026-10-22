@@ -66,3 +66,7 @@ After `dispatchStage()`, a result whose `next.detail` starts with `INCOMPLETE` (
 ## Addendum 9 — a card with no run directory is `fresh`, not halted
 
 `pair-loop.js` cross-run resume: the live-state agent may now report `fresh` (no or empty `.pair/working/runs/story-<id>/<id>`): the cycle never recorded a handoff, so the audit's failure was not durable and the card re-enters. Before, such ids were omitted and fail-safe excluded — every card blocked by a past prerequisite failure stayed excluded forever.
+
+## Addendum 10 — no driver watchdog by default (pnpm patch)
+
+`patches/@foomakers__pair-cli@0.5.1.patch` (pnpm `patchedDependencies`, survives `pnpm install`): `DEFAULT_ITERATION_TIMEOUT_SECONDS` 1800 → 2000000 (~23 days, under the setTimeout cap) — `pnpm pair run …` is no longer killed after 30 min. `--iteration-timeout` still bounds a run when passed. `pair:loop` no longer needs the flag. Drop the patch when pair ships #572 item 18 (no default timeout / inactivity guard). The `--help` text still says "default 1800" (help string not patched).

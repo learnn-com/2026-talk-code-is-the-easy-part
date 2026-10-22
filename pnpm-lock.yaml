@@ -162,13 +162,16 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@foomakers/pair-cli@0.5.1': 66fb1de7a8bfa274c45a88e72063a933ca654bd36ceaee98f8e723afd4d56331
+
 importers:
 
   .:
     devDependencies:
       '@foomakers/pair-cli':
         specifier: 0.5.1
-        version: 0.5.1
+        version: 0.5.1(patch_hash=66fb1de7a8bfa274c45a88e72063a933ca654bd36ceaee98f8e723afd4d56331)
 
   apps/webapp:
     dependencies:
@@ -2321,7 +2324,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@foomakers/pair-cli@0.5.1': {}
+  '@foomakers/pair-cli@0.5.1(patch_hash=66fb1de7a8bfa274c45a88e72063a933ca654bd36ceaee98f8e723afd4d56331)': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

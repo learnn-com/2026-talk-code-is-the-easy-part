@@ -1,2 +1,4 @@
 packages:
   - apps/*
+patchedDependencies:
+  '@foomakers/pair-cli@0.5.1': patches/@foomakers__pair-cli@0.5.1.patch

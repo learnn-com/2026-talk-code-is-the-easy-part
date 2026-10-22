@@ -1,0 +1,14 @@
+diff --git a/bundle-cli/index.js b/bundle-cli/index.js
+index 14a8c7aa27b2b4bb3d36b29f3c9074e11bded882..912e7f2999c35ac7eda5cb96faae6a6e6d11da41 100755
+--- a/bundle-cli/index.js
++++ b/bundle-cli/index.js
+@@ -11588,7 +11588,8 @@ const prompt_safety_1 = __nccwpck_require__(6780);
+  * (eligibility, stop predicate, parallelism, audit) is read from `tech/automation.md` and
+  * nothing here duplicates it.
+  */
+-exports.DEFAULT_ITERATION_TIMEOUT_SECONDS = 1800;
++// Local patch: no practical wall-clock watchdog by default (~23 days, under the setTimeout 2^31-1 ms cap); pass --iteration-timeout to bound a run.
++exports.DEFAULT_ITERATION_TIMEOUT_SECONDS = 2000000;
+ /** US-522: the `--watch` idle poll default and its floor — every poll spawns an engine process. */
+ exports.DEFAULT_WATCH_INTERVAL = { text: '10m', seconds: 600 };
+ exports.MIN_WATCH_INTERVAL_SECONDS = 60;
