@@ -1,12 +1,10 @@
 import { useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { CardSkeleton } from './card-skeleton'
-import { CARD_WIDTH, CatalogCard } from './catalog-card'
+import { CatalogCard } from './catalog-card'
+import { SectionError, SectionLoading } from './section-states'
 import { Slider } from './slider'
 import { useSeries } from './use-series'
 
 const TITLE = 'Corsi e webinar'
-const SKELETON_COUNT = 4
 
 export function SeriesSection() {
   const { status, series, retry } = useSeries()
@@ -22,26 +20,8 @@ export function SeriesSection() {
       <h2 ref={heading} tabIndex={-1} className="text-xl outline-none">
         {TITLE}
       </h2>
-      {status === 'loading' && (
-        <div
-          role="status"
-          aria-busy="true"
-          aria-label="Caricamento contenuti"
-          className="flex gap-4 overflow-hidden"
-        >
-          {Array.from({ length: SKELETON_COUNT }, (_, i) => (
-            <div key={i} className={`${CARD_WIDTH} shrink-0`}>
-              <CardSkeleton />
-            </div>
-          ))}
-        </div>
-      )}
-      {status === 'error' && (
-        <div role="alert" className="flex flex-col items-start gap-3">
-          <p>Non riusciamo a caricare i contenuti</p>
-          <Button onClick={onRetry}>Riprova</Button>
-        </div>
-      )}
+      {status === 'loading' && <SectionLoading label="Caricamento contenuti" />}
+      {status === 'error' && <SectionError onRetry={onRetry} />}
       {status === 'success' && (
         <Slider label={TITLE}>
           {series.map((s) => (

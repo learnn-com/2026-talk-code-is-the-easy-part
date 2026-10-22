@@ -15,14 +15,21 @@ const sample: Series = {
   coverUrl: '/covers/x.jpg',
 }
 
-const wrap = (service: CatalogService) =>
+const noThemes = {
+  listThemes: () => Promise.resolve([]),
+  listThemeContents: () => Promise.resolve([]),
+}
+
+const wrap = (service: Pick<CatalogService, 'listSeries'>) =>
   function Wrapper({ children }: { children: ReactNode }) {
-    return <CatalogProvider service={service}>{children}</CatalogProvider>
+    return <CatalogProvider service={{ ...noThemes, ...service }}>{children}</CatalogProvider>
   }
 
 describe('useSeries', () => {
   it('AC4: starts loading, then exposes the series', async () => {
-    const service: CatalogService = { listSeries: () => Promise.resolve([sample]) }
+    const service: Pick<CatalogService, 'listSeries'> = {
+      listSeries: () => Promise.resolve([sample]),
+    }
     const { result } = renderHook(() => useSeries(), { wrapper: wrap(service) })
     expect(result.current.status).toBe('loading')
     await waitFor(() => expect(result.current.status).toBe('success'))
@@ -30,7 +37,7 @@ describe('useSeries', () => {
   })
 
   it('AC5: a failing service gives status error', async () => {
-    const service: CatalogService = {
+    const service: Pick<CatalogService, 'listSeries'> = {
       listSeries: () => Promise.reject(new CatalogUnavailableError()),
     }
     const { result } = renderHook(() => useSeries(), { wrapper: wrap(service) })
@@ -54,7 +61,7 @@ describe('useSeries', () => {
 
   it('a stale response (after unmount) is ignored without errors', async () => {
     let resolve!: (value: Series[]) => void
-    const service: CatalogService = {
+    const service: Pick<CatalogService, 'listSeries'> = {
       listSeries: () => new Promise<Series[]>((r) => (resolve = r)),
     }
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -68,7 +75,7 @@ describe('useSeries', () => {
   it('a slow first response does not overwrite a newer retry result', async () => {
     const resolvers: Array<(v: Series[]) => void> = []
     const rejecters: Array<(e: unknown) => void> = []
-    const service: CatalogService = {
+    const service: Pick<CatalogService, 'listSeries'> = {
       listSeries: () =>
         new Promise<Series[]>((res, rej) => {
           resolvers.push(res)

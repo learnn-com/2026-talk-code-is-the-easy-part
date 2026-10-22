@@ -1,25 +1,41 @@
-import { CatalogUnavailableError, type CatalogService, type Series } from './catalog-service'
-import dataset from './series.json'
+import {
+  CatalogUnavailableError,
+  type CatalogService,
+  type Series,
+  type SingleContent,
+  type Theme,
+} from './catalog-service'
+import seriesDataset from './series.json'
+import themesDataset from './themes.json'
+
+export type ThemeData = Theme & { contents: SingleContent[] }
 
 interface Options {
   latencyMs?: number
   fail?: boolean
   series?: Series[]
+  themes?: ThemeData[]
 }
 
-const DATASET = (dataset as { series: Series[] }).series
+const SERIES = (seriesDataset as { series: Series[] }).series
+const THEMES = (themesDataset as { themes: ThemeData[] }).themes
 
 export function createMockCatalogService({
   latencyMs = 600,
   fail = false,
-  series = DATASET,
+  series = SERIES,
+  themes = THEMES,
 }: Options = {}): CatalogService {
+  const respond = async <T>(read: () => T): Promise<T> => {
+    await new Promise((resolve) => setTimeout(resolve, latencyMs))
+    if (fail) throw new CatalogUnavailableError()
+    return read()
+  }
   return {
-    async listSeries() {
-      await new Promise((resolve) => setTimeout(resolve, latencyMs))
-      if (fail) throw new CatalogUnavailableError()
-      return [...series]
-    },
+    listSeries: () => respond(() => [...series]),
+    listThemes: () => respond(() => themes.map(({ id, name }) => ({ id, name }))),
+    listThemeContents: (themeId) =>
+      respond(() => [...(themes.find((t) => t.id === themeId)?.contents ?? [])]),
   }
 }
 
