@@ -109,7 +109,7 @@ export function LoginPage() {
               aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
               aria-pressed={showPassword}
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute top-1/2 right-1 -translate-y-1/2 text-black hover:bg-black/10 focus-visible:ring-offset-white"
+              className="absolute top-1/2 right-1 -translate-y-1/2 text-black hover:bg-black/10 focus-visible:ring-black focus-visible:ring-offset-white"
             >
               {showPassword ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
             </Button>

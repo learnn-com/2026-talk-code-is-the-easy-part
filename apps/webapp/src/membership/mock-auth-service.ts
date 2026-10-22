@@ -25,10 +25,18 @@ function isSession(value: unknown): value is Session {
   )
 }
 
+// getRandomValues works in insecure contexts; randomUUID does not.
+function newToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 export function createMockAuthService({
   latencyMs = 600,
-  storage = localStorage,
+  storage: injected,
 }: Options = {}): AuthService {
+  // Resolved lazily: a denied localStorage accessor throws on access.
+  const getStorage = () => injected ?? localStorage
   return {
     async login(email, password) {
       await new Promise((resolve) => setTimeout(resolve, latencyMs))
@@ -36,17 +44,17 @@ export function createMockAuthService({
       const user = DEMO_USERS.find((u) => u.email === normalized && u.password === password)
       if (!user) throw new InvalidCredentialsError()
       const session: Session = {
-        token: crypto.randomUUID(),
+        token: newToken(),
         user: { email: user.email, name: user.name },
       }
-      storage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
+      getStorage().setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
       return session
     },
 
     getSession() {
-      const raw = storage.getItem(SESSION_STORAGE_KEY)
-      if (raw === null) return null
       try {
+        const raw = getStorage().getItem(SESSION_STORAGE_KEY)
+        if (raw === null) return null
         const parsed: unknown = JSON.parse(raw)
         return isSession(parsed) ? parsed : null
       } catch {
@@ -55,7 +63,7 @@ export function createMockAuthService({
     },
 
     logout() {
-      storage.removeItem(SESSION_STORAGE_KEY)
+      getStorage().removeItem(SESSION_STORAGE_KEY)
     },
   }
 }
