@@ -1,5 +1,5 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { NotificationBell } from './notification-bell'
 import type { AppNotification, NotificationService } from './notification-service'
 import { NotificationsProvider, useNotifications } from './notifications-provider'
@@ -19,7 +19,10 @@ const serviceOf = (count: number): NotificationService => ({
 
 let api: ReturnType<typeof useNotifications>
 function Spy() {
-  api = useNotifications()
+  const value = useNotifications()
+  useEffect(() => {
+    api = value
+  })
   return null
 }
 const renderBell = (count: number, extra?: ReactNode) =>
