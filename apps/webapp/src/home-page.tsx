@@ -1,3 +1,4 @@
+import { SeriesSection } from './catalog/series-section'
 import { UserMenu } from './membership/user-menu'
 
 export function HomePage() {
@@ -9,6 +10,7 @@ export function HomePage() {
       </header>
       <main className="px-6 py-8">
         <h1 className="sr-only">Home</h1>
+        <SeriesSection />
       </main>
     </>
   )
