@@ -62,3 +62,7 @@ Run of 2026-10-22 17:51: the `verify:r1` agent ran 5 review passes (tier red), t
 ## Addendum 8 — early-ended stages are re-dispatched (`pair-implement-batch.js`)
 
 After `dispatchStage()`, a result whose `next.detail` starts with `INCOMPLETE` (or a single-reviewer `verify` that came back `partial`) is re-dispatched up to 2 times with a resume note (continue from the first step that did not run; do not redo published steps) before the cycle state sees it. Replaces the durable `failed-resume` for this flake. Upstream: #572 item 24(b).
+
+## Addendum 9 — a card with no run directory is `fresh`, not halted
+
+`pair-loop.js` cross-run resume: the live-state agent may now report `fresh` (no or empty `.pair/working/runs/story-<id>/<id>`): the cycle never recorded a handoff, so the audit's failure was not durable and the card re-enters. Before, such ids were omitted and fail-safe excluded — every card blocked by a past prerequisite failure stayed excluded forever.
