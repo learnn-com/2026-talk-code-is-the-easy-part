@@ -9,57 +9,70 @@
 <meta property="og:description" content="Come cambia il product management quando l'AI scrive codice. Repo, PAIR e risorse del talk.">
 <style>
   :root {
-    --bg: #0b0b0f;
-    --surface: #16161d;
-    --border: #2a2a35;
-    --text: #f2f2f5;
-    --muted: #9a9aaa;
-    --accent: #8b5cf6;
+    --bg: #000000;
+    --bg-card: #131313;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.18);
+    --fg: #FFFFFF;
+    --fg-dim: #B5B5B5;
+    --fg-muted: #8A8A8A;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     background: var(--bg);
-    color: var(--text);
-    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--fg);
+    font: 16px/1.5 'Messina Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  main { max-width: 640px; margin: 0 auto; padding: 48px 16px 64px; }
-  .eyebrow { color: var(--muted); font-size: 14px; margin: 0 0 8px; }
-  h1 { font-size: 36px; line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.02em; }
-  .lead { color: var(--muted); margin: 0 0 40px; }
+  main { max-width: 640px; margin: 0 auto; padding: 56px 16px 72px; }
+  .eyebrow { color: var(--fg-muted); font-size: 14px; font-weight: 700; margin: 0 0 12px; }
+  h1 { font-size: 44px; font-weight: 900; line-height: 1.05; margin: 0 0 16px; letter-spacing: -0.02em; }
+  .lead { color: var(--fg-dim); font-size: 18px; margin: 0 0 32px; }
+  .btn {
+    display: inline-block; padding: 18px 32px; border-radius: 9999px;
+    background: #FFFFFF; color: #000000; font-weight: 700; text-decoration: none;
+    transition: background .15s;
+  }
+  .btn:hover, .btn:focus-visible { background: #F4F4F4; outline: none; }
   h2 {
-    font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--muted); margin: 40px 0 12px;
+    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--fg-muted); margin: 48px 0 12px;
   }
   ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
   a.card {
-    display: block; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px;
-    background: var(--surface); color: inherit; text-decoration: none;
+    display: block; padding: 16px 20px; border: 1px solid var(--border); border-radius: 20px;
+    background: var(--bg-card); color: inherit; text-decoration: none;
     transition: border-color .15s;
   }
-  a.card:hover, a.card:focus-visible { border-color: var(--accent); outline: none; }
-  a.card strong { display: block; font-weight: 600; }
-  a.card span { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
-  a.card.primary { border-color: var(--accent); }
-  .people { grid-template-columns: 1fr 1fr; }
-  @media (max-width: 420px) { .people { grid-template-columns: 1fr; } }
-  footer { color: var(--muted); font-size: 13px; margin-top: 48px; }
-  footer a { color: inherit; }
+  a.card:hover, a.card:focus-visible { border-color: var(--border-strong); outline: none; }
+  a.card strong { display: block; font-weight: 700; }
+  a.card span { display: block; color: var(--fg-dim); font-size: 14px; margin-top: 2px; }
+  .people { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .person {
+    padding: 24px 20px; border: 1px solid var(--border); border-radius: 20px;
+    background: var(--bg-card); text-align: center;
+  }
+  .person img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 16px; }
+  .person strong { display: block; font-weight: 700; font-size: 18px; }
+  .person span { display: block; color: var(--fg-dim); font-size: 14px; margin-top: 2px; }
+  .links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+  .pill {
+    padding: 8px 16px; border-radius: 9999px; border: 1px solid var(--border-strong);
+    color: var(--fg); font-size: 14px; font-weight: 700; text-decoration: none;
+  }
+  .pill:hover, .pill:focus-visible { background: #FFFFFF; color: #000000; outline: none; }
+  @media (max-width: 480px) { .people { grid-template-columns: 1fr; } h1 { font-size: 36px; } }
+  footer { color: var(--fg-muted); font-size: 13px; margin-top: 56px; }
 </style>
 </head>
 <body>
 <main>
-  <p class="eyebrow">PMDay · Bologna, 30 ottobre 2026</p>
+  <p class="eyebrow">Talk</p>
   <h1>Code is the easy part</h1>
   <p class="lead">Come cambia il product management quando l'AI scrive codice. Omar Diop e Gianluca Carucci, Learnn.</p>
 
-  <h2>Il progetto del talk</h2>
-  <ul>
-    <li><a class="card primary" href="https://github.com/learnn-com/2026-talk-code-is-the-easy-part">
-      <strong>Repo della demo</strong>
-      <span>L'MVP di Learnn ricostruito con PAIR: PRD, backlog, skill e video</span>
-    </a></li>
-  </ul>
+  <a class="btn" href="https://github.com/learnn-com/2026-talk-code-is-the-easy-part">Vai alla repo della demo</a>
 
   <h2>PAIR</h2>
   <ul>
@@ -109,25 +122,34 @@
     </a></li>
   </ul>
 
-  <h2>Speaker</h2>
-  <ul class="people">
-    <li><a class="card" href="https://it.linkedin.com/in/omar-diop-dev">
-      <strong>Omar Diop</strong>
-      <span>Head of Engineering · LinkedIn</span>
-    </a></li>
-    <li><a class="card" href="https://it.linkedin.com/in/rucka">
-      <strong>Gianluca Carucci</strong>
-      <span>CTO &amp; COO · LinkedIn</span>
-    </a></li>
-    <li><a class="card" href="https://omardiop.com">
-      <strong>omardiop.com</strong>
-      <span>Il sito di Omar</span>
-    </a></li>
+  <h2>Learnn</h2>
+  <ul>
     <li><a class="card" href="https://www.learnn.com">
-      <strong>Learnn</strong>
-      <span>learnn.com</span>
+      <strong>learnn.com</strong>
+      <span>La piattaforma di formazione per professionisti</span>
     </a></li>
   </ul>
+
+  <h2>Speaker</h2>
+  <div class="people">
+    <div class="person">
+      <img src="omar.jpg" alt="Omar Diop" width="96" height="96">
+      <strong>Omar Diop</strong>
+      <span>Head of Engineering @ Learnn</span>
+      <div class="links">
+        <a class="pill" href="https://it.linkedin.com/in/omar-diop-dev">LinkedIn</a>
+        <a class="pill" href="https://omardiop.com">omardiop.com</a>
+      </div>
+    </div>
+    <div class="person">
+      <img src="gianluca.jpg" alt="Gianluca Carucci" width="96" height="96">
+      <strong>Gianluca Carucci</strong>
+      <span>CTO &amp; COO @ Learnn</span>
+      <div class="links">
+        <a class="pill" href="https://it.linkedin.com/in/rucka">LinkedIn</a>
+      </div>
+    </div>
+  </div>
 
   <footer>Grazie per l'attenzione.</footer>
 </main>
