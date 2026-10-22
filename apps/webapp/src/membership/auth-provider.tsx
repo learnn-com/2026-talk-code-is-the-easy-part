@@ -22,7 +22,11 @@ export function AuthProvider({ service, children }: { service: AuthService; chil
   )
 
   const logout = useCallback(() => {
-    service.logout()
+    try {
+      service.logout()
+    } catch {
+      // The local session is cleared regardless: a failed remote logout must not trap the user.
+    }
     setSession(null)
   }, [service])
 
