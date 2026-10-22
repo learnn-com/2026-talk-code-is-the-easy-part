@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="it">
+<head>
+<base target="_blank" rel="noopener">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code is the easy part</title>
+<meta name="description" content="Risorse del talk «Code is the easy part» di Omar Diop e Gianluca Carucci (Learnn).">
+<meta property="og:title" content="Code is the easy part">
+<meta property="og:description" content="Come cambia il product management quando l'AI scrive codice. Repo, PAIR e risorse del talk.">
+<style>
+  :root {
+    --bg: #000000;
+    --bg-card: #131313;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.18);
+    --fg: #FFFFFF;
+    --fg-dim: #B5B5B5;
+    --fg-muted: #8A8A8A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.5 'Messina Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 56px 16px 72px; }
+  .eyebrow { color: var(--fg-muted); font-size: 14px; font-weight: 700; margin: 0 0 12px; }
+  h1 { font-size: 44px; font-weight: 900; line-height: 1.05; margin: 0 0 16px; letter-spacing: -0.02em; }
+  .lead { color: var(--fg-dim); font-size: 18px; margin: 0 0 32px; }
+  .btn {
+    display: inline-block; padding: 18px 32px; border-radius: 9999px;
+    background: #FFFFFF; color: #000000; font-weight: 700; text-decoration: none;
+    transition: background .15s;
+  }
+  .btn:hover, .btn:focus-visible { background: #F4F4F4; outline: none; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn-secondary { background: transparent; color: #FFFFFF; border: 1px solid var(--border-strong); }
+  .btn-secondary:hover, .btn-secondary:focus-visible { background: #FFFFFF; color: #000000; }
+  h2 {
+    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--fg-muted); margin: 48px 0 12px;
+  }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  a.card {
+    display: block; padding: 16px 20px; border: 1px solid var(--border); border-radius: 20px;
+    background: var(--bg-card); color: inherit; text-decoration: none;
+    transition: border-color .15s;
+  }
+  a.card:hover, a.card:focus-visible { border-color: var(--border-strong); outline: none; }
+  a.card strong { display: block; font-weight: 700; }
+  a.card span { display: block; color: var(--fg-dim); font-size: 14px; margin-top: 2px; }
+  .people { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .person {
+    padding: 24px 20px; border: 1px solid var(--border); border-radius: 20px;
+    background: var(--bg-card); text-align: center;
+  }
+  .person img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 16px; }
+  .person strong { display: block; font-weight: 700; font-size: 18px; }
+  .person span { display: block; color: var(--fg-dim); font-size: 14px; margin-top: 2px; }
+  .links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 16px; }
+  .pill {
+    padding: 8px 16px; border-radius: 9999px; border: 1px solid var(--border-strong);
+    color: var(--fg); font-size: 14px; font-weight: 700; text-decoration: none;
+  }
+  .pill:hover, .pill:focus-visible { background: #FFFFFF; color: #000000; outline: none; }
+  @media (max-width: 480px) { .people { grid-template-columns: 1fr; } h1 { font-size: 36px; } }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Talk</p>
+  <h1>Code is the easy part</h1>
+  <p class="lead">Come cambia il product management quando l'AI scrive codice. Omar Diop e Gianluca Carucci, Learnn.</p>
+
+  <div class="ctas">
+    <a class="btn" href="https://github.com/learnn-com/2026-talk-code-is-the-easy-part#demo-sviluppo-del-primo-sprint">Sviluppa il primo sprint</a>
+    <a class="btn btn-secondary" href="https://github.com/learnn-com/2026-talk-code-is-the-easy-part">Vai al repo</a>
+  </div>
+
+  <h2>Inizia con PAIR</h2>
+  <ul>
+    <li><a class="card" href="https://pair.foomakers.com">
+      <strong>pair.foomakers.com</strong>
+      <span>Il process layer open source per lavorare con l'AI</span>
+    </a></li>
+    <li><a class="card" href="https://github.com/foomakers/pair">
+      <strong>github.com/foomakers/pair</strong>
+      <span>Il codice sorgente</span>
+    </a></li>
+    <li><a class="card" href="https://pair.foomakers.com/docs/getting-started/quickstart">
+      <strong>Quickstart</strong>
+      <span>Come installare PAIR</span>
+    </a></li>
+    <li><a class="card" href="https://github.com/foomakers/pair#quick-start">
+      <strong>Installa PAIR</strong>
+      <span>Il quick start dal repository</span>
+    </a></li>
+  </ul>
+
+  <h2>Riferimenti a PAIR nel talk</h2>
+  <ul>
+    <li><a class="card" href="https://pair.foomakers.com/docs/process-lifecycle/phases">
+      <strong>Le fasi del processo</strong>
+      <span>Dal PRD alla code review in nove passi</span>
+    </a></li>
+    <li><a class="card" href="https://pair.foomakers.com/docs/process-lifecycle/lifecycle-modes">
+      <strong>Le modalità del lifecycle</strong>
+      <span>Assistita, supervisionata, autonoma</span>
+    </a></li>
+    <li><a class="card" href="https://pair.foomakers.com/docs/process-lifecycle/refinement-workflow">
+      <strong>Refinement workflow</strong>
+      <span>Il grilling: l'AI fa le domande, le persone rispondono</span>
+    </a></li>
+    <li><a class="card" href="https://pair.foomakers.com/docs/reference/quality-model">
+      <strong>Quality model</strong>
+      <span>Classificazione e matrice di rischio</span>
+    </a></li>
+    <li><a class="card" href="https://pair.foomakers.com/docs/tutorials/automated-development#autonomy-until-gates-escalation">
+      <strong>Automated development</strong>
+      <span>Autonomia fino ai gate, poi escalation</span>
+    </a></li>
+  </ul>
+
+  <h2>Strumenti citati</h2>
+  <ul>
+    <li><a class="card" href="https://claude.com/product/tag">
+      <strong>Claude Tag</strong>
+      <span>@Claude nei thread di Slack</span>
+    </a></li>
+    <li><a class="card" href="https://linear.app/docs/linear-asks-slack">
+      <strong>Linear Asks</strong>
+      <span>Le richieste da Slack diventano issue Linear</span>
+    </a></li>
+  </ul>
+
+  <h2>Learnn</h2>
+  <ul>
+    <li><a class="card" href="https://www.learnn.com">
+      <strong>learnn.com</strong>
+      <span>La piattaforma di formazione per professionisti</span>
+    </a></li>
+  </ul>
+
+  <h2>Speaker</h2>
+  <div class="people">
+    <div class="person">
+      <img src="omar.jpg" alt="Omar Diop" width="96" height="96">
+      <strong>Omar Diop</strong>
+      <span>Head of Engineering @ Learnn</span>
+      <div class="links">
+        <a class="pill" href="https://it.linkedin.com/in/omar-diop-dev">LinkedIn</a>
+        <a class="pill" href="https://omardiop.com">omardiop.com</a>
+      </div>
+    </div>
+    <div class="person">
+      <img src="gianluca.jpg" alt="Gianluca Carucci" width="96" height="96">
+      <strong>Gianluca Carucci</strong>
+      <span>CTO &amp; COO @ Learnn</span>
+      <div class="links">
+        <a class="pill" href="https://it.linkedin.com/in/rucka">LinkedIn</a>
+      </div>
+    </div>
+  </div>
+
+</main>
+</body>
+</html>
