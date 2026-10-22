@@ -57,6 +57,17 @@ describe('AuthProvider', () => {
     expect(screen.getByText('anonymous')).toBeInTheDocument()
   })
 
+  it('clears the local session even when the service logout fails', async () => {
+    const service = fakeService(session)
+    service.logout = vi.fn(() => {
+      throw new Error('network down')
+    })
+    renderWith(service)
+    await act(async () => screen.getByText('logout').click())
+    expect(service.logout).toHaveBeenCalled()
+    expect(screen.getByText('anonymous')).toBeInTheDocument()
+  })
+
   it('useAuth outside the provider throws', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     expect(() => render(<Probe />)).toThrow(/AuthProvider/)
