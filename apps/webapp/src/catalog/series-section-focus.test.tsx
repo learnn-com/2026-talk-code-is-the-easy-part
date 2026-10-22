@@ -15,9 +15,14 @@ const one: Series = {
   coverUrl: '/covers/funnel-discovery.jpg',
 }
 
-const renderWith = (service: CatalogService) =>
+const noThemes = {
+  listThemes: () => Promise.resolve([]),
+  listThemeContents: () => Promise.resolve([]),
+}
+
+const renderWith = (service: Pick<CatalogService, 'listSeries'>) =>
   render(
-    <CatalogProvider service={service}>
+    <CatalogProvider service={{ ...noThemes, ...service }}>
       <SeriesSection />
     </CatalogProvider>,
   )
