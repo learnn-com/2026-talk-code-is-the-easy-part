@@ -125,7 +125,7 @@ export function parseValue(key, raw) {
     }
     case 'root': {
       const v = String(raw ?? '').trim().replace(/^#/, '')
-      return /^\d+$/.test(v) ? { value: v } : { errors: [err('root', `${JSON.stringify(String(raw ?? ''))} is not an issue number`)] }
+      return /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(v) && !v.includes('..') ? { value: v } : { errors: [err('root', `${JSON.stringify(String(raw ?? ''))} is not an issue id`)] }
     }
     case 'until': {
       const v = String(raw ?? '').trim()
