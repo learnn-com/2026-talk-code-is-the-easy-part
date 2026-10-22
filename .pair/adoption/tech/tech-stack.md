@@ -16,6 +16,7 @@ This document defines the **validated technology stack decisions** for the proje
 ## Frontend (webapp)
 
 - **React** — SPA/responsive webapp, **deployed separately** from Strapi. Exact React version and bundler are pinned in the webapp package when added.
+- **Bundler / language / routing / tests:** **Vite** + **TypeScript** + **react-router-dom**, **Vitest** + Testing Library; workspace `apps/webapp` ([ADL](../decision-log/2026-10-22-webapp-stack-mock-session.md)). Exact versions pinned in `apps/webapp/package.json`.
 - **Styling / UI:** **Tailwind CSS** + **shadcn/ui** (see [ux-ui.md](ux-ui.md)).
 - **Video player:** **Video.js** — version pinned in the webapp package when integrated.
 - **Hosting (prod):** static build on **Amazon S3** + **Amazon CloudFront** ([infrastructure.md](infrastructure.md)).
