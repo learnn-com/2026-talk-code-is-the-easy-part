@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { CardSkeleton } from './card-skeleton'
 import { CARD_WIDTH, CatalogCard } from './catalog-card'
@@ -9,11 +10,18 @@ const SKELETON_COUNT = 4
 
 export function SeriesSection() {
   const { status, series, retry } = useSeries()
+  const heading = useRef<HTMLHeadingElement>(null)
+  const onRetry = () => {
+    heading.current?.focus()
+    retry()
+  }
   if (status === 'success' && series.length === 0) return null
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="text-xl">{TITLE}</h2>
+      <h2 ref={heading} tabIndex={-1} className="text-xl outline-none">
+        {TITLE}
+      </h2>
       {status === 'loading' && (
         <div
           role="status"
@@ -31,7 +39,7 @@ export function SeriesSection() {
       {status === 'error' && (
         <div role="alert" className="flex flex-col items-start gap-3">
           <p>Non riusciamo a caricare i contenuti</p>
-          <Button onClick={retry}>Riprova</Button>
+          <Button onClick={onRetry}>Riprova</Button>
         </div>
       )}
       {status === 'success' && (
