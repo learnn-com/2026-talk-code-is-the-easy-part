@@ -47,6 +47,7 @@ const SHA_RE = /^[0-9a-f]{40}$/
 const TIER_RE = /^[A-Za-z0-9][A-Za-z0-9:_./-]*$/
 const LABEL_SHAPE_RE = /^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/i
 const SAFE_REF_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/
+const cardId = v => (/^\d+$/.test(String(v)) ? Number(v) : String(v))
 export const PR_CHECK = 'pair-review'
 export const APPROVAL_CHECK = 'pair-explicit-approval'
 const BELOW_RED = ['risk:green', 'risk:yellow']
@@ -256,7 +257,7 @@ export function closeStory({ hosts, story, repo, branch, root = process.cwd(), g
     hosts.pm.updateCard({ repo, id: story, body: next })
     return { ok: true, changed: true }
   })
-  let closed = [Number(story)]
+  let closed = [cardId(story)]
   run('close', () => {
     const r = hosts.pm.closeAndCascade({ id: story, repo })
     closed = r.closed ?? closed
@@ -377,7 +378,7 @@ export function parseArgs(argv) {
   }
   if (cmd === 'escalate') {
     need('dir', 'story', 'stage', 'conditions')
-    if (!/^\d+$/.test(opts.story)) throw new Error(`--story must be a number, got ${JSON.stringify(opts.story)}`)
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(opts.story) || opts.story.includes('..')) throw new Error(`--story must be a card id, got ${JSON.stringify(opts.story)}`)
     if (!/^[a-z-]+$/.test(opts.stage)) throw new Error('--stage must be a step name')
     let conditions
     try {
@@ -387,11 +388,11 @@ export function parseArgs(argv) {
     }
     if (!Array.isArray(conditions) || !conditions.length || conditions.some(c => conditionError(c) !== null)) throw new Error('--conditions must be a non-empty JSON array of label-shaped conditions')
     if (opts.repo !== undefined && !/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(opts.repo)) throw new Error('--repo must be owner/name')
-    return { cmd, opts: { ...opts, story: Number(opts.story), conditions } }
+    return { cmd, opts: { ...opts, story: cardId(opts.story), conditions } }
   }
   need('dir', 'story', 'pr', 'reviewedHead', 'cardTier')
   if ((opts.autoAdvance === undefined) === (opts.mergeGate === undefined)) throw new Error('exactly one of --autoAdvance or --mergeGate is required')
-  if (!/^\d+$/.test(opts.story)) throw new Error(`--story must be a number, got ${JSON.stringify(opts.story)}`)
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(opts.story) || opts.story.includes('..')) throw new Error(`--story must be a card id, got ${JSON.stringify(opts.story)}`)
   if (!/^\d+$/.test(opts.pr)) throw new Error(`--pr must be a number, got ${JSON.stringify(opts.pr)}`)
   if (!SHA_RE.test(opts.reviewedHead)) throw new Error('--reviewedHead must be a 40-hex sha')
   if (!TIER_RE.test(opts.cardTier)) throw new Error('--cardTier must be a label-shaped tier')
@@ -426,7 +427,7 @@ export function parseArgs(argv) {
   }
   if (cmd === 'run') need('gate', 'message')
   if (cmd === 'run' && !['green', 'red'].includes(opts.gate)) throw new Error('--gate must be green | red')
-  return { cmd, opts: { ...opts, story: Number(opts.story), pr: Number(opts.pr), ...(tiers ? { autoAdvanceTiers: tiers } : {}), ...(mergeGate ? { mergeGate } : {}) } }
+  return { cmd, opts: { ...opts, story: cardId(opts.story), pr: Number(opts.pr), ...(tiers ? { autoAdvanceTiers: tiers } : {}), ...(mergeGate ? { mergeGate } : {}) } }
 }
 
 const isMain = () => {

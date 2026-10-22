@@ -27,6 +27,7 @@ export const ROUTES = ['run-interactive', 'run-autonomous', 'skip-needs-human', 
 export const BOUNDARIES = ['B0', 'B1', 'B2']
 export const READINESS = ['draft', 'refined-no-breakdown', 'ready']
 export const NEEDS_REVIEW = 'needs-review'
+const cardId = v => (/^\d+$/.test(String(v)) ? Number(v) : String(v))
 export const ESCALATION_MARKER = story => `<!-- pair:prepare-escalation #${story} -->`
 export const PROVENANCE_RE = /Prepared autonomously under prepare: .+ \(.+\)/
 const BREAKDOWN_HEADING_RE = /^##\s+Task Breakdown\s*$/m
@@ -247,9 +248,9 @@ export function parseArgs(argv) {
     }
     if (opts.story !== undefined) {
       if (opts.labels !== undefined) throw new Error('--labels and --story are mutually exclusive')
-      if (!/^\d+$/.test(opts.story)) throw new Error(`--story must be a number, got ${JSON.stringify(opts.story)}`)
+      if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(opts.story) || opts.story.includes('..')) throw new Error(`--story must be a card id, got ${JSON.stringify(opts.story)}`)
       if (opts.dir === undefined) throw new Error('--dir is required with --story')
-      out.opts.story = Number(opts.story)
+      out.opts.story = cardId(opts.story)
     }
     return out
   }
@@ -262,8 +263,8 @@ export function parseArgs(argv) {
     out.opts.refinedAutonomously = opts.refinedAutonomously === 'true'
   }
   need('dir', 'story')
-  if (!/^\d+$/.test(opts.story)) throw new Error(`--story must be a number, got ${JSON.stringify(opts.story)}`)
-  out.opts.story = Number(opts.story)
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/.test(opts.story) || opts.story.includes('..')) throw new Error(`--story must be a card id, got ${JSON.stringify(opts.story)}`)
+  out.opts.story = cardId(opts.story)
   need('source')
   if (cmd === 'escalate') {
     need('boundary')
