@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "themes": [
+    {
+      "id": "marketing",
+      "name": "Marketing",
+      "contents": [
+        {
+          "id": "marketing-1",
+          "title": "Posizionamento che si ricorda",
+          "professional": "Luca Mastella",
+          "role": "Designer",
+          "durationMinutes": 42,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "marketing-2",
+          "title": "Brand voice in 30 minuti",
+          "professional": "Giulia Ferri",
+          "role": "Brand strategist",
+          "durationMinutes": 31,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "marketing-3",
+          "title": "Email che si leggono davvero",
+          "professional": "Marco Bellini",
+          "role": "Copywriter",
+          "durationMinutes": 55,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "marketing-4",
+          "title": "Content calendar sostenibile",
+          "professional": "Giulia Ferri",
+          "role": "Brand strategist",
+          "durationMinutes": 27,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "marketing-5",
+          "title": "Social senza ansia da algoritmo",
+          "professional": "Sara Conti",
+          "role": "Social media manager",
+          "durationMinutes": 48,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "marketing-6",
+          "title": "Analisi della concorrenza",
+          "professional": "Marco Bellini",
+          "role": "Copywriter",
+          "durationMinutes": 36,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        }
+      ]
+    },
+    {
+      "id": "vendite",
+      "name": "Vendite",
+      "contents": [
+        {
+          "id": "vendite-1",
+          "title": "La prima call di vendita",
+          "professional": "Andrea Riva",
+          "role": "Sales coach",
+          "durationMinutes": 39,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "vendite-2",
+          "title": "Gestire le obiezioni sul prezzo",
+          "professional": "Andrea Riva",
+          "role": "Sales coach",
+          "durationMinutes": 44,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "vendite-3",
+          "title": "Follow-up senza essere invadenti",
+          "professional": "Elena Greco",
+          "role": "Account manager",
+          "durationMinutes": 23,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "vendite-4",
+          "title": "Pipeline: pulizia settimanale",
+          "professional": "Elena Greco",
+          "role": "Account manager",
+          "durationMinutes": 18,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "vendite-5",
+          "title": "Negoziare un rinnovo",
+          "professional": "Paolo Serra",
+          "role": "Sales director",
+          "durationMinutes": 62,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "vendite-6",
+          "title": "Demo che convertono",
+          "professional": "Paolo Serra",
+          "role": "Sales director",
+          "durationMinutes": 51,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "vendite-7",
+          "title": "Cold outreach etico",
+          "professional": "Andrea Riva",
+          "role": "Sales coach",
+          "durationMinutes": 29,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        }
+      ]
+    },
+    {
+      "id": "ai",
+      "name": "AI",
+      "contents": [
+        {
+          "id": "ai-1",
+          "title": "Prompt efficaci per il lavoro",
+          "professional": "Chiara Monti",
+          "role": "AI specialist",
+          "durationMinutes": 33,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "ai-2",
+          "title": "Automatizzare i report con l'AI",
+          "professional": "Davide Galli",
+          "role": "Data analyst",
+          "durationMinutes": 58,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "ai-3",
+          "title": "AI e privacy: cosa non incollare",
+          "professional": "Chiara Monti",
+          "role": "AI specialist",
+          "durationMinutes": 21,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "ai-4",
+          "title": "Creare un assistente su misura",
+          "professional": "Davide Galli",
+          "role": "Data analyst",
+          "durationMinutes": 75,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "ai-5",
+          "title": "Verificare le risposte dell'AI",
+          "professional": "Chiara Monti",
+          "role": "AI specialist",
+          "durationMinutes": 26,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "ai-6",
+          "title": "AI nel customer care",
+          "professional": "Laura Neri",
+          "role": "CX lead",
+          "durationMinutes": 40,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        }
+      ]
+    },
+    {
+      "id": "produttivita",
+      "name": "Produttività",
+      "contents": [
+        {
+          "id": "produttivita-1",
+          "title": "Pianificare la settimana in 20 minuti",
+          "professional": "Luca Mastella",
+          "role": "Designer",
+          "durationMinutes": 20,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "produttivita-2",
+          "title": "Deep work in ufficio aperto",
+          "professional": "Irene Fabbri",
+          "role": "Coach",
+          "durationMinutes": 34,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "produttivita-3",
+          "title": "Riunioni brevi e utili",
+          "professional": "Irene Fabbri",
+          "role": "Coach",
+          "durationMinutes": 25,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "produttivita-4",
+          "title": "Inbox zero senza fanatismo",
+          "professional": "Matteo Rossi",
+          "role": "Operations manager",
+          "durationMinutes": 19,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "produttivita-5",
+          "title": "Delegare con chiarezza",
+          "professional": "Matteo Rossi",
+          "role": "Operations manager",
+          "durationMinutes": 46,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "produttivita-6",
+          "title": "Abitudini che reggono",
+          "professional": "Irene Fabbri",
+          "role": "Coach",
+          "durationMinutes": 52,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        },
+        {
+          "id": "produttivita-7",
+          "title": "Strumenti: meno, ma meglio",
+          "professional": "Luca Mastella",
+          "role": "Designer",
+          "durationMinutes": 28,
+          "coverUrl": "/covers/funnel-discovery-flip.jpg"
+        },
+        {
+          "id": "produttivita-8",
+          "title": "Fine giornata: chiudere bene",
+          "professional": "Irene Fabbri",
+          "role": "Coach",
+          "durationMinutes": 15,
+          "coverUrl": "/covers/funnel-discovery.jpg"
+        }
+      ]
+    }
+  ]
+}
