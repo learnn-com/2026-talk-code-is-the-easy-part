@@ -1,0 +1,389 @@
+{
+  "$meta": {
+    "pr": "4",
+    "phase": "r1-g1",
+    "base": "f6b0c1f08fd3cf3a96389746620c4dc52c889f04",
+    "trailer": "Pair-RED-Snapshot: pr=4; phase=r1-g1; base=f6b0c1f08fd3cf3a96389746620c4dc52c889f04; manifest=.pair/red-snapshots/pr-4-r1-g1.json",
+    "artifacts": [
+      "apps/webapp/src/membership/login-page.focus.test.tsx",
+      "apps/webapp/src/membership/login-page.focus.control.test.tsx",
+      "apps/webapp/src/membership/mock-auth-service.resilience.test.ts",
+      "apps/webapp/src/membership/mock-auth-service.resilience.control.test.ts",
+      "apps/webapp/src/routes.resilience.test.tsx",
+      "apps/webapp/src/test-support/focus-ring.ts"
+    ]
+  },
+  "mode": "remediation",
+  "phase": "r1-g1",
+  "inputHead": "f6b0c1f08fd3cf3a96389746620c4dc52c889f04",
+  "sourceOfTruth": "review findings r0-1, r0-2, r0-3 at f6b0c1f; producers apps/webapp/src/membership/login-page.tsx and mock-auth-service.ts; app Tailwind build (src/index.css)",
+  "inventory": [
+    {
+      "id": "r0-1",
+      "producer": "LoginPage password toggle className (login-page.tsx, merged with Button base classes by cn/twMerge) resolved through the app's Tailwind build (src/index.css theme) into --tw-ring-color on :focus-visible",
+      "inputs": [
+        "toggle state (Mostra password / Nascondi password)",
+        "Button base focus-visible:ring-ring",
+        "--ring #fff",
+        "white Input background"
+      ],
+      "representations": [
+        "login-page.tsx className",
+        "components/ui/button.tsx base class",
+        "src/index.css theme vars",
+        "compiled Tailwind CSS (compile() of index.css)"
+      ],
+      "consumers": [
+        "keyboard user on /login"
+      ],
+      "classes": [
+        "ring colour white (defect) vs non-white >=3:1 on white input",
+        "toggle state Mostra",
+        "toggle state Nascondi",
+        "ring width still present",
+        "toggle reachable by Tab"
+      ],
+      "interactions": [
+        "Button base ring-ring x toggle override via twMerge x --ring #fff x white input background"
+      ]
+    },
+    {
+      "id": "r0-2",
+      "producer": "createMockAuthService (mock-auth-service.ts): default-storage resolution and getSession()",
+      "inputs": [
+        "storage.getItem outcome: valid session / null / throws SecurityError / throws other error",
+        "window.localStorage accessor throws"
+      ],
+      "representations": [
+        "mock-auth-service.ts",
+        "story edge case, README, ADL: unreadable = no session"
+      ],
+      "consumers": [
+        "AuthProvider initial state",
+        "ProtectedRoute/PublicOnlyRoute guards",
+        "main.tsx startup"
+      ],
+      "classes": [
+        "getItem throws DOMException SecurityError",
+        "getItem throws generic Error",
+        "localStorage accessor throws at service creation",
+        "valid persisted session",
+        "no persisted session"
+      ],
+      "interactions": [
+        "getSession -> AuthProvider useState init -> ProtectedRoute redirect to /login"
+      ]
+    },
+    {
+      "id": "r0-3",
+      "producer": "createMockAuthService.login token generation (mock-auth-service.ts)",
+      "inputs": [
+        "crypto surface: randomUUID present / absent (insecure context)",
+        "valid demo credentials"
+      ],
+      "representations": [
+        "mock-auth-service.ts",
+        "persisted session in storage"
+      ],
+      "consumers": [
+        "LoginPage error mapping",
+        "AuthProvider session",
+        "persisted session read by getSession",
+        "routes Home landing"
+      ],
+      "classes": [
+        "randomUUID absent: token non-empty, unguessable length",
+        "randomUUID absent: tokens differ across logins",
+        "randomUUID present (control)"
+      ],
+      "interactions": [
+        "login token -> storage.setItem -> getSession round trip",
+        "login rejection -> LoginPage generic error vs landing on Home"
+      ]
+    }
+  ],
+  "fixScope": {
+    "owner": "apps/webapp membership",
+    "mode": "behavioral",
+    "allowedPaths": [
+      "apps/webapp/src/membership/login-page.tsx",
+      "apps/webapp/src/membership/mock-auth-service.ts"
+    ]
+  },
+  "matrix": [
+    {
+      "id": "R1-W1",
+      "kind": "witness",
+      "baseline": "red",
+      "condition": "toggle (Mostra password) focus ring colour from real Tailwind build",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/login-page.focus.test.tsx (apps/webapp/src/membership/login-page.focus.test.tsx)",
+      "file": "apps/webapp/src/membership/login-page.focus.test.tsx",
+      "expected": "contrast of resolved --tw-ring-color vs white input >= 3:1 (base: 1:1, white ring)",
+      "covers": [
+        "r0-1"
+      ]
+    },
+    {
+      "id": "R1-B1",
+      "kind": "boundary",
+      "baseline": "red",
+      "condition": "toggle in Nascondi password state",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/login-page.focus.test.tsx (apps/webapp/src/membership/login-page.focus.test.tsx)",
+      "file": "apps/webapp/src/membership/login-page.focus.test.tsx",
+      "expected": "same >= 3:1 contrast in the pressed state",
+      "covers": [
+        "r0-1"
+      ]
+    },
+    {
+      "id": "R1-C1",
+      "kind": "control",
+      "baseline": "pass",
+      "condition": "oracle calibration: ring-ring resolves to 1:1, ring-black >= 3:1",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/login-page.focus.control.test.tsx (apps/webapp/src/membership/login-page.focus.control.test.tsx)",
+      "file": "apps/webapp/src/membership/login-page.focus.control.test.tsx",
+      "expected": "oracle discriminates; passes at base",
+      "covers": [
+        "r0-1"
+      ]
+    },
+    {
+      "id": "R1-C2",
+      "kind": "control",
+      "baseline": "pass",
+      "condition": "toggle keeps a numeric focus-visible ring width",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/login-page.focus.control.test.tsx (apps/webapp/src/membership/login-page.focus.control.test.tsx)",
+      "file": "apps/webapp/src/membership/login-page.focus.control.test.tsx",
+      "expected": "focus-visible:ring-<n> present",
+      "covers": [
+        "r0-1"
+      ]
+    },
+    {
+      "id": "R1-C3",
+      "kind": "control",
+      "baseline": "pass",
+      "condition": "Tab from password field reaches toggle",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/login-page.focus.control.test.tsx (apps/webapp/src/membership/login-page.focus.control.test.tsx)",
+      "file": "apps/webapp/src/membership/login-page.focus.control.test.tsx",
+      "expected": "toggle has focus",
+      "covers": [
+        "r0-1"
+      ]
+    },
+    {
+      "id": "R2-W1",
+      "kind": "witness",
+      "baseline": "red",
+      "condition": "getItem throws DOMException SecurityError",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.test.ts (apps/webapp/src/membership/mock-auth-service.resilience.test.ts)",
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.test.ts",
+      "expected": "getSession() returns null",
+      "covers": [
+        "r0-2"
+      ]
+    },
+    {
+      "id": "R2-B1",
+      "kind": "boundary",
+      "baseline": "red",
+      "condition": "getItem throws generic Error",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.test.ts (apps/webapp/src/membership/mock-auth-service.resilience.test.ts)",
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.test.ts",
+      "expected": "getSession() returns null",
+      "covers": [
+        "r0-2"
+      ]
+    },
+    {
+      "id": "R2-B2",
+      "kind": "boundary",
+      "baseline": "red",
+      "condition": "window.localStorage accessor throws; service created with default storage",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.test.ts (apps/webapp/src/membership/mock-auth-service.resilience.test.ts)",
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.test.ts",
+      "expected": "creation does not throw and getSession() returns null",
+      "covers": [
+        "r0-2"
+      ]
+    },
+    {
+      "id": "R2-I1",
+      "kind": "interaction",
+      "baseline": "red",
+      "condition": "routes at '/' with AuthProvider over a service whose getItem throws",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/routes.resilience.test.tsx (apps/webapp/src/routes.resilience.test.tsx)",
+      "file": "apps/webapp/src/routes.resilience.test.tsx",
+      "expected": "Login heading Benvenuto shown, path /login",
+      "covers": [
+        "r0-2"
+      ]
+    },
+    {
+      "id": "R2-I2",
+      "kind": "interaction",
+      "baseline": "red",
+      "condition": "routes at '/' with default-storage service while localStorage accessor throws",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/routes.resilience.test.tsx (apps/webapp/src/routes.resilience.test.tsx)",
+      "file": "apps/webapp/src/routes.resilience.test.tsx",
+      "expected": "Login heading Benvenuto shown",
+      "covers": [
+        "r0-2"
+      ]
+    },
+    {
+      "id": "R2-C1",
+      "kind": "control",
+      "baseline": "pass",
+      "condition": "readable valid persisted session",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.control.test.ts (apps/webapp/src/membership/mock-auth-service.resilience.control.test.ts)",
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.control.test.ts",
+      "expected": "getSession() returns the session",
+      "covers": [
+        "r0-2"
+      ]
+    },
+    {
+      "id": "R2-C2",
+      "kind": "control",
+      "baseline": "pass",
+      "condition": "readable storage without session",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.control.test.ts (apps/webapp/src/membership/mock-auth-service.resilience.control.test.ts)",
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.control.test.ts",
+      "expected": "getSession() returns null",
+      "covers": [
+        "r0-2"
+      ]
+    },
+    {
+      "id": "R3-W1",
+      "kind": "witness",
+      "baseline": "red",
+      "condition": "crypto.randomUUID undefined, valid demo login",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.test.ts (apps/webapp/src/membership/mock-auth-service.resilience.test.ts)",
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.test.ts",
+      "expected": "login resolves; token string length >= 16",
+      "covers": [
+        "r0-3"
+      ]
+    },
+    {
+      "id": "R3-B1",
+      "kind": "boundary",
+      "baseline": "red",
+      "condition": "crypto.randomUUID undefined, two logins",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.test.ts (apps/webapp/src/membership/mock-auth-service.resilience.test.ts)",
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.test.ts",
+      "expected": "tokens differ",
+      "covers": [
+        "r0-3"
+      ]
+    },
+    {
+      "id": "R3-I1",
+      "kind": "interaction",
+      "baseline": "red",
+      "condition": "crypto.randomUUID undefined; login then getSession",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.test.ts (apps/webapp/src/membership/mock-auth-service.resilience.test.ts)",
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.test.ts",
+      "expected": "getSession() equals the resolved session",
+      "covers": [
+        "r0-3"
+      ]
+    },
+    {
+      "id": "R3-I2",
+      "kind": "interaction",
+      "baseline": "red",
+      "condition": "crypto.randomUUID undefined; full UI login from '/'",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/routes.resilience.test.tsx (apps/webapp/src/routes.resilience.test.tsx)",
+      "file": "apps/webapp/src/routes.resilience.test.tsx",
+      "expected": "lands on Home banner, no alert",
+      "covers": [
+        "r0-3"
+      ]
+    },
+    {
+      "id": "R3-C1",
+      "kind": "control",
+      "baseline": "pass",
+      "condition": "randomUUID available, two logins",
+      "oracle": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.control.test.ts (apps/webapp/src/membership/mock-auth-service.resilience.control.test.ts)",
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.control.test.ts",
+      "expected": "tokens non-empty (>=16) and differ",
+      "covers": [
+        "r0-3"
+      ]
+    }
+  ],
+  "redTests": [
+    {
+      "file": "apps/webapp/src/membership/login-page.focus.test.tsx",
+      "kind": "test",
+      "baseline": "red",
+      "sha256": "sha256:5592c9499ee06abe4caf2e6ae6dbe7f385d24c46696abe1b8a0bde1e616d20b2",
+      "command": "pnpm --dir apps/webapp exec vitest run src/membership/login-page.focus.test.tsx",
+      "observed": "2 failed (2): AssertionError: expected 1 to be greater than or equal to 3"
+    },
+    {
+      "file": "apps/webapp/src/membership/login-page.focus.control.test.tsx",
+      "kind": "test",
+      "baseline": "pass",
+      "sha256": "sha256:a4fc6cf8bf3ef21c4c7fd9ee636d1715c0080a14485c6dc44d2a94b33129f5c8",
+      "command": "pnpm --dir apps/webapp exec vitest run src/membership/login-page.focus.control.test.tsx",
+      "observed": "3 passed (3)"
+    },
+    {
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.test.ts",
+      "kind": "test",
+      "baseline": "red",
+      "sha256": "sha256:b281d0c756ab570d6cf8c81281d2fc35430803909d7bcbe8edcc94cb48833734",
+      "command": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.test.ts",
+      "observed": "6 failed (6): SecurityError: denied; Error: boom; TypeError: crypto.randomUUID is not a function"
+    },
+    {
+      "file": "apps/webapp/src/membership/mock-auth-service.resilience.control.test.ts",
+      "kind": "test",
+      "baseline": "pass",
+      "sha256": "sha256:fcb81dc90741a166f056d8a272f39b407255fcceb5d60f559e3ececdf498a016",
+      "command": "pnpm --dir apps/webapp exec vitest run src/membership/mock-auth-service.resilience.control.test.ts",
+      "observed": "3 passed (3)"
+    },
+    {
+      "file": "apps/webapp/src/routes.resilience.test.tsx",
+      "kind": "test",
+      "baseline": "red",
+      "sha256": "sha256:f758f574c8264161de38e86c5c6eaefdb3175da6a81f829b8331ae9e841fc0af",
+      "command": "pnpm --dir apps/webapp exec vitest run src/routes.resilience.test.tsx",
+      "observed": "3 failed (3): SecurityError: denied (x2); Unable to find role=banner"
+    },
+    {
+      "file": "apps/webapp/src/test-support/focus-ring.ts",
+      "kind": "fixture",
+      "sha256": "sha256:466afb213a37883284c001a3fbd4f4b0cf73f8187cafdd0114108ce84027a48a",
+      "consumedBy": "apps/webapp/src/membership/login-page.focus.test.tsx"
+    }
+  ],
+  "testExempt": false,
+  "plan": {
+    "groups": [
+      {
+        "groupId": "r1-g1",
+        "findings": [
+          "r0-1",
+          "r0-2",
+          "r0-3"
+        ],
+        "owner": "apps/webapp membership",
+        "mode": "behavioral",
+        "allowedPaths": [
+          "apps/webapp/src/membership/login-page.tsx",
+          "apps/webapp/src/membership/mock-auth-service.ts"
+        ],
+        "dependsOn": [],
+        "oracle": "pnpm --dir apps/webapp exec vitest run"
+      }
+    ],
+    "carried": []
+  }
+}
