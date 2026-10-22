@@ -35,6 +35,14 @@ Dati dietro l'interfaccia `CatalogService` (Catalog & Publishing); dataset JSON 
 
 Frecce precedente/successiva solo da 768px in su; su mobile solo swipe. Le card non sono interattive.
 
+## Notifiche in-app (campanella nell'header Home)
+
+Dati dietro l'interfaccia `NotificationService` (Communications); dataset JSON versionato `src/communications/notifications.json` (4 notifiche che citano contenuti di `series.json`, date relative a "adesso", `courseId` già nel payload per il futuro deep link, oggi non usato dalla UI).
+
+- Badge rosso col numero di non lette ("9+" da 10), nascosto a 0; azzerato all'apertura del pannello, le notifiche restano non lette finché toccate (tap = letta, nessuna navigazione).
+- Pannello: sheet su mobile, dropdown da 768px in su; Esc chiude, focus intrappolato nel pannello.
+- Stato solo in memoria (`NotificationsProvider`): a ogni ricarica si riparte dallo stato iniziale. Servizio che fallisce = nessun badge, "Nessuna notifica".
+
 ## Deploy statico (S3 + CloudFront)
 
 Routing lato client (`/login`, `/`): CloudFront deve rispondere `index.html` (custom error 403/404 → `/index.html`, 200).

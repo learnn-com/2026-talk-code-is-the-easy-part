@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "notifications": [
+    {
+      "id": "n-funnel-lesson",
+      "title": "Nuova lezione disponibile",
+      "body": "Funnel discovery avanzato: è online la lezione sulle interviste ai clienti.",
+      "minutesAgo": 12,
+      "courseId": "funnel-discovery-corso"
+    },
+    {
+      "id": "n-growth-live",
+      "title": "Webinar in partenza",
+      "body": "Growth hacking dal vivo con Luca Mastella inizia tra poco.",
+      "minutesAgo": 180,
+      "courseId": "growth-hacking-live"
+    },
+    {
+      "id": "n-onboarding",
+      "title": "Webinar consigliato per te",
+      "body": "Onboarding che converte: come ridurre l'abbandono dei nuovi utenti.",
+      "minutesAgo": 1560,
+      "courseId": "onboarding-webinar"
+    },
+    {
+      "id": "n-pricing",
+      "title": "Registrazione pubblicata",
+      "body": "Pricing e posizionamento: la registrazione del webinar è disponibile.",
+      "minutesAgo": 4320,
+      "courseId": "pricing-webinar"
+    }
+  ]
+}
