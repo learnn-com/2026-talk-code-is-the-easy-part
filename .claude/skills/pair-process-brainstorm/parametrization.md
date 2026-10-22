@@ -1,6 +1,6 @@
 # /pair-process-brainstorm — Parametrization Reference (level · orientation · phase-3 writer)
 
-Reference file for [SKILL.md](SKILL.md) — read by **Step 0 item 4** on every run that carries a `$root`, and whenever a run has to explain or defend the deduced triple. `SKILL.md` states the precedence rule inline; this file is the **normative matrix** and its rationale.
+Reference file for [SKILL.md](./SKILL.md) — read by **Step 0 item 4** on every run that carries a `$root`, and whenever a run has to explain or defend the deduced triple. `SKILL.md` states the precedence rule inline; this file is the **normative matrix** and its rationale.
 
 ## Orientation Matrix
 

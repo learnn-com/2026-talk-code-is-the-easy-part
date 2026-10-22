@@ -1,6 +1,6 @@
 ---
 name: pair-capability-verify-adoption
-description: "Checks code and configuration against project adoption files for a given scope. Detection-only: returns conformity/non-conformity list per area without resolving issues. Caller decides resolution. Invocable independently or composed by /pair-process-review and /pair-process-implement."
+description: "Detects conformity/non-conformity of already-written code and configuration against the project's adopted decisions (architecture, tech-stack, infrastructure, etc.), for a given scope — a compliance audit, not a new-choice evaluation (that's /pair-capability-assess-stack and siblings). Detection-only; resolution is the caller's. Composed by /pair-process-review and /pair-process-implement; invoke directly to audit a scope on demand."
 version: 0.4.1
 author: Foomakers
 ---
@@ -116,7 +116,7 @@ ADOPTION COMPLIANCE REPORT:
 
 FINDINGS (if any):
 1. [area] — [description] ([file:line])
-   Resolution: [/assess-stack | /pair-capability-record-decision | developer action]
+   Resolution: [/assess-stack | /record-decision | developer action]
 2. ...
 
 RESULT: [ALL CONFORMANT | N non-conformities across N areas]
@@ -156,15 +156,15 @@ When invoked **independently**:
 
 ## Graceful Degradation
 
-- If an adoption file for a given area does not exist, report that area as `NOT CONFIGURED` — do not fail.
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (adoption file missing → report as `NOT CONFIGURED`, don't fail; guideline missing → check only what's derivable) for the standard scenarios. Additional cases:
+
 - If `$scope=all` and no adoption files exist at all, report: "No adoption files found — run `/pair-process-bootstrap` to establish project standards."
-- If guidelines referenced by an area are not found, check only adoption-file-derived constraints for that area.
 - If the codebase is empty or no code changes to check, report all areas as `CONFORMANT` (nothing to violate).
 
 ## Notes
 
 - This skill is **read-only** — it inspects code and adoption files but never modifies anything.
 - **Detection-only contract**: the skill identifies non-conformities but never resolves them. Resolution is always delegated to the caller or the appropriate skill.
-- **Idempotent**: re-invocation on conformant code immediately confirms compliance. Re-invocation on non-conformant code returns the same findings until the code is fixed.
+- **Idempotent** — see [idempotency convention](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/idempotency.md). This skill's check: conformant code is confirmed immediately; non-conformant code returns the same findings until fixed.
 - **Scope is mandatory** to prevent accidental full scans when only a targeted check is needed. Use `all` explicitly for comprehensive checks.
 - Contextual checking: when invoked on a PR, only changes in the PR are checked, not the entire codebase. When invoked independently, the scope of code analysis is determined by the area.

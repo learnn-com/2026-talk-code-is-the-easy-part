@@ -73,6 +73,16 @@ This folder contains guidelines for establishing solid architectural foundations
    - Build optimization strategies
    - Dependency isolation techniques
 
+9. **Context Map Maintenance** (`context-map-maintenance.md`)
+   - Inline-maintenance method for the context map (challenge, sharpen, stress-test, cross-check)
+   - Lazy, human-approved subdomain context split convention
+   - Loading and conflict-flag instructions for brainstorm/refine sessions
+
+10. **Coupling Balance** (`coupling-balance.md`)
+    - Three-dimensional coupling model: integration strength × socio-technical distance × volatility
+    - The balance rule + severity criteria (critical/significant/tolerable)
+    - DDD-pattern mapping, fractal application, and test implications; criteria source for `assess-coupling`
+
 ## 🔄 Decision Support
 
 ### Pattern Selection Decision Tree

@@ -1,13 +1,19 @@
 ---
 name: pair-process-specify-prd
-description: "Creates or updates a Product Requirements Document through structured template analysis, hypothesis-driven information gathering, and iterative review. Idempotent — detects existing PRD and offers selective section update."
-version: 0.4.1
+description: "Creates or updates a Product Requirements Document through structured template analysis and iterative review — drafting a new PRD, or filling in a missing/outdated section."
+version: 0.5.0
 author: Foomakers
 ---
 
 # /pair-process-specify-prd — PRD Creation
 
 Create a comprehensive Product Requirements Document through collaborative analysis and structured information gathering. Follows a template-first approach: analyze PRD template, gather information via hypothesis-driven questions, create PRD, review and approve.
+
+## Process Profile
+
+<!-- process-step: id=specify-prd -->
+
+Executable form of the **`specify-prd`** step. A **direct** invocation while a step is disabled by the project's profile warns and asks for confirmation; a **composed** one never prompts — it degrades exactly as a step that is not installed. No section ⇒ no-op. See [process-profile gate](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/process-profile-gate.md).
 
 ## Arguments
 
@@ -41,7 +47,7 @@ Create a comprehensive Product Requirements Document through collaborative analy
 3. **Act**: Read and analyze:
    - [PRD template](../../../.pair/knowledge/assets/PRD_template.md) — understand all required sections and structure
    - [PRD example](../../../.pair/knowledge/assets/PRD_example.md) — understand quality standards, specificity level, writing tone
-4. **Verify**: Template structure and quality expectations are understood.
+4. **Verify**: The template's full section list and the example's quality bar are both in hand — Step 1.2 can enumerate every section from them without re-reading either file.
 
 ### Step 1.2: Create Section Checklist
 
@@ -89,10 +95,7 @@ For each uncovered checklist section, gather information using this pattern:
 
    > Based on [context/docs], I assume [specific hypothesis]. Is this accurate?
 
-   Example questions:
-   - *"Based on the documentation, the primary problem is [pain point hypothesis]. Is this accurate?"*
-   - *"The primary user persona would be [role hypothesis] who needs [need hypothesis]. Correct?"*
-   - *"The must-have MVP features would include [3-4 feature hypotheses]. Are these the right priorities?"*
+   Example: *"Based on the documentation, the primary problem is [pain point hypothesis]. Is this accurate?"*
 
 2. **Act**: Wait for developer response (confirmation, correction, elaboration).
 3. **Act**: Update checklist — mark section as covered when sufficient information gathered.
@@ -104,7 +107,7 @@ For each uncovered checklist section, gather information using this pattern:
 - Ask ONE question at a time — never batch multiple questions
 - Always propose a reasonable assumption — never ask open-ended "what is X?"
 - Validate understanding by summarizing complex responses
-- Do NOT proceed to Phase 3 until all sections have information
+- Proceed to Phase 3 only once every checklist section has sufficient information
 
 ## Phase 3: PRD Creation
 
@@ -178,10 +181,12 @@ When invoked **independently**:
 
 - **Template not reviewed** (Phase 1) — must understand structure before gathering information
 - **Example not analyzed** (Phase 1) — must understand quality expectations
-- **Information incomplete** (Phase 2) — do not create PRD with gaps
+- **Information incomplete** (Phase 2) — create the PRD only once every checklist section is covered (Step 2.2)
 - **Developer rejects PRD** (Phase 4) — iterate until approved, never force completion
 
 ## Graceful Degradation
+
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (reference material missing → use a minimal structure directly; adoption directory missing → the skill still runs, creates it) for the standard scenarios. Additional cases:
 
 - If [PRD template](../../../.pair/knowledge/assets/PRD_template.md) not found, use the 13-section structure defined in Phase 1 Step 1.2 checklist as a minimal template.
 - If [PRD example](../../../.pair/knowledge/assets/PRD_example.md) not found, proceed without quality reference but warn: "No PRD example found — quality benchmarking unavailable."
@@ -191,5 +196,3 @@ When invoked **independently**:
 
 - Target file is always [adoption/product/PRD.md](../../../.pair/adoption/product/PRD.md) — the single source of truth for product requirements.
 - This skill modifies one file: the PRD. Changes should be committed by the calling skill or developer.
-- Hypothesis-driven questioning reduces developer effort: confirm/correct is faster than open-ended answers.
-- One question at a time prevents cognitive overload and ensures thorough coverage.

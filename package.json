@@ -1,11 +1,12 @@
 {
-  "name": "pmday2026",
+  "name": "2026-talk-code-is-the-easy-part",
   "private": true,
   "packageManager": "pnpm@12.6.0",
   "scripts": {
-    "pair": "pair-cli"
+    "pair": "pair-cli",
+    "pair:loop": "pair-cli run --root IN-01 --autonomous --iteration-timeout 21600"
   },
   "devDependencies": {
-    "@foomakers/pair-cli": "0.4.3"
+    "@foomakers/pair-cli": "0.5.1"
   }
 }

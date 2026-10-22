@@ -1,6 +1,6 @@
 # /pair-process-brainstorm — Idempotent Re-invocation (per-phase resume list)
 
-Reference file for [SKILL.md](SKILL.md). See the [idempotency convention](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/idempotency.md): `/pair-process-brainstorm` is one of the **four orchestrators** that resume per-phase rather than by a single artifact check, so this is its itemized list. Read it when a re-invocation lands on a partially completed discovery.
+Reference file for [SKILL.md](./SKILL.md). See the [idempotency convention](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/idempotency.md): `/pair-process-brainstorm` is one of the **four orchestrators** that resume per-phase rather than by a single artifact check, so this is its itemized list. Read it when a re-invocation lands on a partially completed discovery.
 
 Re-invoking `/pair-process-brainstorm` on a partially completed discovery is safe and expected — per-phase:
 
