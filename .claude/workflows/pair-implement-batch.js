@@ -574,7 +574,7 @@ const PIPELINE_DEFAULTS = {
   // repository, and the agent handed it has `Read`/`Write`.
   reviewTemplate: '.pair/knowledge/guidelines/collaboration/templates/code-review-template.md',
   // Rounds of autonomous fix<->re-review before escalating to a human.
-  maxFixRounds: 3,
+  maxFixRounds: 25,
   // Independent final verifiers per head — the tier's reviewer count (KB default 1 at every tier;
   // an adoption override in way-of-working's Review Tier Matrix is passed here by the caller).
   reviewers: 1,

@@ -38,3 +38,15 @@ Reserved literal `*` in `## Autonomy` = no label filter (all cards in scope). `a
 - `way-of-working.md`: `pm-tool: filesystem`, `code-host: github`.
 - `cycle-prepare.mjs`, `cycle-merge.mjs`: `--story` accepts card ids (`01-01-001`), not only digits.
 - `automation.md`: `prepare: never`. Gate semantics: `always` = a human prepares (unattended run skips Drafts), `never` = never hold, refine autonomously. Likewise `merge: never` = merge without holding.
+
+## Addendum 3 — `merge: never` waives `pair-explicit-approval`
+
+`cycle-merge.mjs` (`decideMerge`): with `mergeGate.mode === 'never'` the explicit-approval check is not required at any tier (KB default: required at `risk:red`/untagged). The project opted out of every human hold. `pair-review` = success, head pin, CI green and the tier gate set stay mandatory. Re-apply after `pair update`, or set `merge: when; has: <escalation labels>` to restore holds.
+
+## Addendum 4 — fix rounds 3 → 25
+
+`maxFixRounds` default raised 3 → 25 in `cycle-state.mjs` (`PIPELINE_DEFAULTS`, fallbacks) and `pair-implement-batch.js`: the cycle keeps fix↔re-review until `pair-review` = success instead of escalating after 3 rounds. Per-run override: `pipeline.maxFixRounds`.
+
+## Addendum 5 — headless background ceiling
+
+`claude -p` kills background workflows 10 min after the last turn ("Background tasks still running 10m…; stopping them"), cutting the loop mid-card. `.claude/settings.local.json` (per-machine, git-ignored) sets `env.CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0` (wait indefinitely). Another machine/CI must set it too. `--iteration-timeout` (default 1800 s) still bounds each iteration.

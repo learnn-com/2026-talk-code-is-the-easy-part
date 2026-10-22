@@ -76,7 +76,8 @@ export function decideMerge({ cardTier, currentTier, effectiveTier = currentTier
     if (signals.pairReview !== 'success') add('pair-review', `pair-review conclusion on head ${signals.headSha} is ${signals.pairReview}, never merged without a published approval`)
     // D4: below 🔴 the check auto-passes (the tier does not require explicit approval), so a repo that publishes no such job
     // reads `missing` and that is satisfied; at 🔴 (or any tier not named below it) missing/pending awaits a human, failure halts.
-    const approvalRequired = !BELOW_RED.includes(effectiveTier)
+    // Local patch: `merge: never` (the project opted out of every hold) means no human approval is awaited at any tier.
+    const approvalRequired = mergeGate?.mode === 'never' ? false : !BELOW_RED.includes(effectiveTier)
     if (signals.explicitApproval !== 'success' && (approvalRequired || signals.explicitApproval !== 'missing')) add('explicit-approval', `pair-explicit-approval conclusion on head ${signals.headSha} is ${signals.explicitApproval} (D10: no recorded human approval), never merged`)
   }
   // AL: the PR's own CI checks on the pinned head — pair's two contexts are judged above, everything else must be green.

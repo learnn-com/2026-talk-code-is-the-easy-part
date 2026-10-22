@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="it">
 <head>
+<base target="_blank" rel="noopener">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Code is the easy part</title>
@@ -35,6 +36,9 @@
     transition: background .15s;
   }
   .btn:hover, .btn:focus-visible { background: #F4F4F4; outline: none; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn-secondary { background: transparent; color: #FFFFFF; border: 1px solid var(--border-strong); }
+  .btn-secondary:hover, .btn-secondary:focus-visible { background: #FFFFFF; color: #000000; }
   h2 {
     font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
     color: var(--fg-muted); margin: 48px 0 12px;
@@ -71,9 +75,12 @@
   <h1>Code is the easy part</h1>
   <p class="lead">Come cambia il product management quando l'AI scrive codice. Omar Diop e Gianluca Carucci, Learnn.</p>
 
-  <a class="btn" href="https://github.com/learnn-com/2026-talk-code-is-the-easy-part">Vai alla repo della demo</a>
+  <div class="ctas">
+    <a class="btn" href="https://github.com/learnn-com/2026-talk-code-is-the-easy-part#demo-sviluppo-del-primo-sprint">Sviluppa il primo sprint</a>
+    <a class="btn btn-secondary" href="https://github.com/learnn-com/2026-talk-code-is-the-easy-part">Vai al repo</a>
+  </div>
 
-  <h2>PAIR</h2>
+  <h2>Inizia con PAIR</h2>
   <ul>
     <li><a class="card" href="https://pair.foomakers.com">
       <strong>pair.foomakers.com</strong>
@@ -85,8 +92,12 @@
     </a></li>
     <li><a class="card" href="https://pair.foomakers.com/docs/getting-started/quickstart">
       <strong>Quickstart</strong>
-      <span>Cosa potete provare da domani</span>
+      <span>Come installare PAIR</span>
     </a></li>
+  </ul>
+
+  <h2>Riferimenti a PAIR nel talk</h2>
+  <ul>
     <li><a class="card" href="https://pair.foomakers.com/docs/process-lifecycle/phases">
       <strong>Le fasi del processo</strong>
       <span>Dal PRD alla code review in nove passi</span>

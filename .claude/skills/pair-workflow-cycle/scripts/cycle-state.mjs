@@ -429,7 +429,7 @@ export const PIPELINE_DEFAULTS = {
   auditLogDir: '.pair/working/reviews',
   baseBranch: 'origin/main',
   reviewTemplate: '.pair/knowledge/guidelines/collaboration/templates/code-review-template.md',
-  maxFixRounds: 3,
+  maxFixRounds: 25,
   reviewers: 1,
 }
 export const DEFAULT_SEVERITY_FLOOR = 'Minor'
@@ -2464,7 +2464,7 @@ function deriveNextStep(handoffs, policy, ctx = {}) {
     // the very transition the request was meant to hold. The kind, when given, only says WHY.
     if (d.needsHumanDecision === true) return blocked('escalate', { detail: `${d.humanDecisionKind ?? 'human'} decision requested by the review — a human decides before any automatic rewind`, findings: blocking, regressionRisks: activeRisks })
     if (activeRisks.length) {
-      if (cycleCounters(list).spentCycles >= (policy.maxFixRounds ?? 3)) return blocked('escalate', { budget: 'maxFixRounds', detail: 'an active regression risk remains and the remediation budget is spent', findings: blocking, regressionRisks: activeRisks })
+      if (cycleCounters(list).spentCycles >= (policy.maxFixRounds ?? 25)) return blocked('escalate', { budget: 'maxFixRounds', detail: 'an active regression risk remains and the remediation budget is spent', findings: blocking, regressionRisks: activeRisks })
       // The earliest introducing batch is repaired first; every active risk travels with it.
       const roundOf = b => phaseParts(`${b}-g1`)?.round ?? 0
       const batch = [...new Set(activeRisks.map(r => String(r.introducedByRemediationBatchId)))].sort((a, b) => roundOf(a) - roundOf(b))[0]
@@ -2567,7 +2567,7 @@ function deriveNextStep(handoffs, policy, ctx = {}) {
     // US-479 T-21 (S4): the budget bounds COMPLETED corrective cycles, never the raw round
     // counter — a metadata-only re-review (inputsChanged, a moved head) bumps `round` without any
     // actual fix and must not spend the budget a real remediation earns.
-    if (cycleCounters(list).spentCycles >= (policy.maxFixRounds ?? 3)) return blocked('escalate', { budget: 'maxFixRounds', findings: blocking })
+    if (cycleCounters(list).spentCycles >= (policy.maxFixRounds ?? 25)) return blocked('escalate', { budget: 'maxFixRounds', findings: blocking })
     // US-506: `approved-test-failing` and `contract-gap` presuppose a SEALED contract of their group.
     // On a fresh run `a0` never sealed one, so such a finding has nothing to retry or revise: it is an
     // ordinary finding and routes the test-first remediation below (AC-3 — no new finding class).

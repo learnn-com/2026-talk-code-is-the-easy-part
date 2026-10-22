@@ -4,6 +4,7 @@
   "packageManager": "pnpm@12.6.0",
   "scripts": {
     "pair": "pair-cli",
+    "pair:loop": "pair-cli run --root IN-01 --autonomous --iteration-timeout 21600",
     "ts:check": "pnpm --filter webapp ts:check",
     "test": "pnpm --filter webapp test",
     "lint": "pnpm --filter webapp lint",
