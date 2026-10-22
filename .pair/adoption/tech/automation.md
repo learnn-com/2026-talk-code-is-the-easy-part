@@ -4,5 +4,5 @@
 
 filter: *
 until: merged
-prepare: always
+prepare: never
 merge: never
