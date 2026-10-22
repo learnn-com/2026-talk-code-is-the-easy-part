@@ -9,6 +9,8 @@ Welcome to the AI-Human pairing repository template! This guide provides essenti
 ├── adoption/                  # 💼 Product requirements and technical standards
 │   ├── product/              # Product requirements and adoption docs
 │   │   ├── PRD.md            # Product Requirements Document
+│   │   └── subdomain/        # Subdomain adoption guidelines
+│   │       └── README.md
 │   └── tech/                 # Adopted technical standards and practices
 │       ├── architecture.md
 │       ├── infrastructure.md
@@ -18,6 +20,8 @@ Welcome to the AI-Human pairing repository template! This guide provides essenti
 │       ├── way-of-working.md
 │       ├── adr/              # Architecture Decision Records
 │       │   └── .keep
+│       └── boundedcontext/   # Bounded context guidelines
+│           └── README.md
 ├── knowledge/                # 📚 Knowledge base and process documentation
 │   ├── getting-started.md    # This guide
 │   ├── way-of-working.md     # Main process documentation
@@ -39,7 +43,6 @@ Welcome to the AI-Human pairing repository template! This guide provides essenti
 │   │   │   ├── methodology/  # Agile methodologies (Kanban, Scrum, etc.)
 │   │   │   ├── project-management-tool/  # Tool-specific implementations
 │   │   │   │   ├── README.md
-│   │   │   │   ├── azure-devops-implementation.md
 │   │   │   │   ├── github-implementation.md
 │   │   │   │   └── filesystem-implementation.md
 │   │   │   ├── project-tracking/  # Project tracking and reporting
@@ -64,24 +67,24 @@ Welcome to the AI-Human pairing repository template! This guide provides essenti
 │       ├── 01-how-to-create-PRD.md
 │       ├── 02-how-to-complete-bootstrap-checklist.md
 │       ├── 03-how-to-create-and-prioritize-initiatives.md
-│       ├── 04-how-to-breakdown-epics.md
-│       ├── 05-how-to-breakdown-user-stories.md
-│       ├── 06-how-to-refine-a-user-story.md
-│       ├── 07-how-to-create-tasks.md
-│       ├── 08-how-to-implement-a-task.md
-│       └── 09-how-to-code-review.md
+│       ├── 06-how-to-breakdown-epics.md
+│       ├── 07-how-to-breakdown-user-stories.md
+│       ├── 08-how-to-refine-a-user-story.md
+│       ├── 09-how-to-create-tasks.md
+│       ├── 10-how-to-implement-a-task.md
+│       └── 11-how-to-code-review.md
 ````
 
 ### 📂 Folder Overview:
 
 - **`way-of-working.md`**: Main process documentation – the starting point to understand the full workflow
 - **`getting-started.md`**: This guide – essential information to get started with the framework
-- **`skills-guide.md`**: Full catalog of 29 Agent Skills (9 process + 19 capability + 1 navigator) with composition patterns, adoption file mapping, and usage instructions
+- **`skills-guide.md`**: Full catalog of 51 Agent Skills (10 process + 32 capability + 7 workflow + 2 navigator) with composition patterns, adoption file mapping, and usage instructions
 - **`how-to/`**: Step-by-step guides for each development phase and LLM collaboration
   - Process guides (01-11): Operational documentation for each phase
 - **`assets/`**: Templates, checklists, and document examples (e.g., PRD, bootstrap checklist)
 - **`adoption/`**: Product requirements and technical adoption documents
-  - `product/`: Product requirements
+  - `product/`: Product requirements and subdomain guidelines
   - `tech/`: Currently adopted technical standards and practices
 - **`guidelines/`**: Technical guidelines organized by theme
   - `architecture/`: System architecture patterns and ADR processes

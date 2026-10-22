@@ -1,54 +1,45 @@
 ---
 name: pair-capability-assess-methodology
-description: "Assess development methodology using resolution cascade (Argument > Adoption > Assessment). Reads methodology guidelines, proposes Scrum/Kanban/Lean/etc., writes way-of-working.md methodology section, composes /pair-capability-record-decision. Idempotent."
-version: 0.4.1
+description: "Evaluates and recommends the development methodology (Scrum, Kanban, Lean, SAFe, hybrid) — iterations, ceremonies, flow — when the choice is open. Output-only: emits a proposal + target for /pair-capability-record-decision to persist."
+version: 0.7.0
 author: Foomakers
 ---
 
 # /pair-capability-assess-methodology — Methodology Assessment
 
-Evaluate and decide on the development methodology: Scrum, Kanban, Lean, Waterfall, SAFe, LeSS, or hybrid. Follows the resolution cascade.
+Evaluate and recommend the development methodology: Scrum, Kanban, Lean, Waterfall, SAFe, LeSS, or hybrid. Follows the resolution cascade. **Output-only**: produces a proposal (rendered methodology-section content + target) plus a report — writes no files. Persistence is delegated to `/pair-capability-record-decision`.
 
 ## Arguments
 
 | Argument  | Required | Description                                                                     |
 | --------- | -------- | ------------------------------------------------------------------------------- |
 | `$choice` | No       | Override: skip assessment, use this methodology directly (e.g. `kanban`, `scrum`) |
+| `$approval` | No     | Approval-round mode: `interactive` (default — every round runs as written) or `auto` (ask nothing — three outcomes, all reported on the `Approval` line: a proposal is accepted as-is; an existing recorded value is kept and the delta reported unapplied; a call the skill cannot make alone yields **no proposal**, reported unresolved). See [approval rounds](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/approval-rounds.md). |
 
 ## Composed Skills
 
-| Skill              | Type       | Required                                            |
-| ------------------ | ---------- | --------------------------------------------------- |
-| `/pair-capability-record-decision` | Capability | Yes — records methodology decision as ADL           |
+**Output-only** — composes no skill, writes no files; the caller persists via `/pair-capability-record-decision` (see [Composition Interface](#composition-interface)).
 
-## Adoption File
+## Proposal Target
+
+The rendered adoption content is destined for this section — the caller writes it via `/pair-capability-record-decision`:
 
 - **Target**: [adoption/tech/way-of-working.md](../../../.pair/adoption/tech/way-of-working.md) — **methodology section**
 - **Ownership**: Methodology section (shared file — /pair-capability-assess-pm owns PM tool section)
 
 ## Algorithm
 
+### Scoped Context (package-local override)
+
+Opt-in. When the central adoption file carries a `## Package-Local Adoption` router, resolve the rule set per [scoped context resolution](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/scoped-context-resolution.md) (diff-scoped here: globals + `<pkg>/.pair/` of the packages the diff touches, nothing else); report a central↔local conflict, a dangling router entry, and — when the [complexity signals](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/package-local-adoption.md#activation-proposal) fire — PROPOSE the override and wait for approval, never activate. No router ⇒ unchanged behaviour.
+
 ### Step 1: Resolution Cascade
 
-#### Path A — Argument Override
+Read [resolution cascade](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/resolution-cascade.md) for the generic Path A/B/C mechanics (check → skip → act → verify). Paths A and B carry their `$approval` qualification **there** — it is never restated per skill; only the rounds Path C adds below are qualified here.
 
-1. **Check**: Is `$choice` provided?
-2. **Skip**: If not provided, go to Path B.
-3. **Act**: Confirm the choice. Check for conflicts with existing adoption.
-4. **Verify**: Developer confirms. Proceed to Step 3.
-
-#### Path B — Adoption Exists
-
-1. **Check**: Does [adoption/tech/way-of-working.md](../../../.pair/adoption/tech/way-of-working.md) exist and contain a methodology reference (e.g. "Kanban", "Scrum", or similar)?
-2. **Skip**: If no methodology defined, go to Path C.
-3. **Act**: Read current adoption. Confirm it's valid.
-4. **Check**: Does a corresponding decision record exist?
-5. **Act**: If decision record missing, compose `/pair-capability-record-decision` to backfill.
-6. **Verify**: Done — exit skill.
-
-#### Path C — Full Assessment
-
-1. **Act**: Proceed to Step 2.
+- **Path A delta**: override argument is `$choice`. On confirm, proceed to Step 3.
+- **Path B delta**: adoption check is [adoption/tech/way-of-working.md](../../../.pair/adoption/tech/way-of-working.md) containing a methodology reference (e.g. "Kanban", "Scrum"). If a corresponding decision record is missing, report the gap (this skill still writes nothing; the caller persists a backfill via `/pair-capability-record-decision`).
+- **Path C delta**: proceed to Step 2.
 
 ### Step 2: Read Guidelines
 
@@ -64,7 +55,7 @@ Evaluate and decide on the development methodology: Scrum, Kanban, Lean, Waterfa
 2. **Act**: Read project context:
    - [adoption/product/PRD.md](../../../.pair/adoption/product/PRD.md) — team size, timeline, requirements stability
    - [adoption/tech/architecture.md](../../../.pair/adoption/tech/architecture.md) — system complexity
-3. **Verify**: Guidelines and context loaded.
+3. **Verify**: Every file listed in 1-2 above has been read; any that's missing follows [Graceful Degradation](#graceful-degradation) (ask the developer directly) instead of silently proceeding to Step 3.
 
 ### Step 3: Evaluate Options
 
@@ -82,63 +73,66 @@ Evaluate and decide on the development methodology: Scrum, Kanban, Lean, Waterfa
    > - Key ceremonies: [list main ceremonies/practices]
    > - Trade-offs: [acknowledged limitations]
 
-4. **Act**: If two methodologies score within 10%, present both with trade-off analysis.
+4. **Act**: If two methodologies score within 10%, present both with trade-off analysis. Under `$approval: auto` the near-tie is **resolved without asking**: the higher-scoring methodology stands; on an **exact tie**, the one **project state** already shows (an existing board, ceremony cadence or `way-of-working.md` section — the cascade's own precedence); and if project state shows neither, **no proposal is emitted** and the tie is reported **unresolved** to the caller. The runner-up and the margin are reported either way, as a choice a human has not made. <!-- approval-round: kind=choice; auto=project-state-then-unresolved -->
 
-5. **Verify**: Developer approves.
+5. **Verify** (`$approval: interactive`): Developer approves. Under `auto` the recommendation above is accepted as-is and reported in the Output Format, never asked. <!-- approval-round: kind=confirm; auto=accept -->
 
-### Step 4: Write Adoption File
+### Step 4: Render Adoption Proposal
 
-1. **Act**: Write or update **methodology-related content** in [way-of-working.md](../../../.pair/adoption/tech/way-of-working.md):
+1. **Act**: Render the **methodology-related content** — the ready-to-write body for way-of-working.md:
    - Methodology name and key practices
    - Development cycle description (iterations, flow, etc.)
-   - Preserve all other sections (quality gates, PM tool, etc.)
-2. **Verify**: Methodology section written. Other sections preserved.
+   - Scope strictly to the methodology section so the caller's write preserves all other sections (quality gates, PM tool, etc.)
+2. **Verify**: The rendered `content` and its `target` are ready to emit.
 
-### Step 5: Record Decision
+### Step 5: Emit Proposal
 
-1. **Act**: Compose `/pair-capability-record-decision`:
-   - `$type`: `non-architectural`
-   - `$topic`: `methodology-choice`
-   - `$summary`: "[Methodology] adopted for development workflow"
-2. **Verify**: ADL created. Adoption consistent.
+1. **Act**: Emit the proposal to the caller:
+   - `content`: the rendered methodology-section body from Step 4
+   - `target`: [adoption/tech/way-of-working.md](../../../.pair/adoption/tech/way-of-working.md) (methodology section)
+   - `decision-metadata`: `$type: non-architectural`, `$topic: methodology-choice`, `$summary: "[Methodology] adopted for development workflow"`
+   - plus the human-facing report (see Output Format)
+2. **Verify**: Proposal emitted — see [record-decision invocation contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md) for the persistence contract (persistence is always the caller's responsibility, delegated to `/pair-capability-record-decision`).
 
 ## Output Format
 
+Follows the [Decision Shape](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/output-shapes.md#decision-shape).
+
 ```text
-ASSESSMENT COMPLETE:
+ASSESSMENT COMPLETE (output-only — no files written):
 ├── Domain:    Methodology
 ├── Path:      [Argument Override | Adoption Exists | Full Assessment]
 ├── Decision:  [methodology name]
-├── Adoption:  [way-of-working.md methodology section — written | confirmed | updated]
-├── Record:    [ADL path — created | exists | backfilled]
-└── Status:    [Complete | Confirmed existing]
+├── Proposal:  [content rendered for way-of-working.md methodology section]
+├── Target:    adoption/tech/way-of-working.md (methodology section)
+├── Persist:   [caller composes /record-decision(content, target) → ADL]
+├── Approval:  [interactive — approved | auto — accepted as-is | auto — existing kept, delta not applied | auto — UNRESOLVED, no proposal]
+└── Status:    [Proposal ready | Confirmed existing | Unresolved — no proposal]
 ```
 
 ## Composition Interface
 
+See [record-decision invocation contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md) for the generic tuple + Input/Output/Persistence shape.
+
 When composed by `/pair-process-bootstrap`:
 
 - **Input**: `/pair-process-bootstrap` invokes during Phase 2.
-- **Output**: Returns decision summary and adoption file path.
+- **Persistence**: `/pair-process-bootstrap` composes `/pair-capability-record-decision` to write the methodology section and record the ADL.
 
-When invoked **independently**:
-
-- Full interactive flow. Developer commits changes.
+When invoked **independently**: the human (or agent) persists the proposal by composing `/pair-capability-record-decision`, then commits.
 
 ## Edge Cases
 
-- **way-of-working.md exists but no methodology section**: Add methodology content, preserve all other sections.
+- **way-of-working.md exists but no methodology section**: Render content that adds the methodology section; the caller's write preserves all other sections.
 - **Team uses hybrid approach**: Document the hybrid: which elements from which methodology, how they combine.
-- **Methodology change mid-project**: Update adoption, create new decision record referencing the old one.
+- **Methodology change mid-project**: The proposal supersedes the previous decision — the caller records the new decision referencing the old one.
 
 ## Graceful Degradation
 
-- If methodology guidelines not found, use minimal assessment: ask developer for methodology preference based on team size and requirements stability.
-- If `/pair-capability-record-decision` not installed, warn and skip recording.
-- If way-of-working.md doesn't exist, create it with methodology section. Warn: "Created way-of-working.md — other sections should be populated."
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (guideline missing → ask developer for methodology preference based on team size/requirements stability) and [record-decision contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md) (persistence unavailable → proposal stands as a report) for the standard scenarios. No additional cases.
 
 ## Notes
 
-- Methodology decisions are **non-architectural** → produce ADL.
-- **Section ownership**: this skill writes ONLY methodology-related content in way-of-working.md. /pair-capability-assess-pm owns PM tool section. Quality gates section is managed by /pair-process-bootstrap.
+- Methodology decisions are **non-architectural** → the caller records them as an ADL.
+- **Section ownership**: this skill renders content ONLY for the methodology section of way-of-working.md. /pair-capability-assess-pm owns PM tool section. Quality gates section is managed by /pair-process-bootstrap. The single adoption writer is `/pair-capability-record-decision`.
 - Educational content (methodology descriptions, ceremonies, WHY each works) stays in guidelines.

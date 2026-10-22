@@ -16,10 +16,10 @@ The process is designed to:
 
 | Symbol | Role                     | Description                       |
 | ------ | ------------------------ | --------------------------------- |
-| 🤖🤝👨‍💻 | **LLM + Dev Review**     | LLM proposes, Developer validates |
-| 👨‍💻💡🤖 | **Dev + LLM Suggestion** | Developer leads, LLM supports     |
-| 🤖⚡   | **LLM Agent**            | Full autonomy until completion    |
-| 👨‍💻     | **Dev**                  | Developer-only activity           |
+| 🤖🤝👨‍💻  | **LLM + Dev Review**     | LLM proposes, Developer validates |
+| 👨‍💻💡🤖  | **Dev + LLM Suggestion** | Developer leads, LLM supports     |
+| 🤖⚡     | **LLM Agent**            | Full autonomy until completion    |
+| 👨‍💻    | **Dev**                  | Developer-only activity           |
 
 ---
 
@@ -43,22 +43,28 @@ The process is designed to:
 
 ### Timeline & Card Types
 
-| Level                             | Duration (Sprints) | Value Stream       | Card Type              | Focus                                              |
-| --------------------------------- | ------------------ | ------------------ | ---------------------- | -------------------------------------------------- |
+| Level                            | Duration (Sprints) | Value Stream       | Card Type              | Focus                                              |
+| -------------------------------- | ------------------ | ------------------ | ---------------------- | -------------------------------------------------- |
 | 📘 **Induction**                  | One-time           | Product Foundation | **PRD**                | Product Vision, Market Fit, Technical Architecture |
 | 🚀 **Strategic Initiatives**      | 6-8 sprints        | Business Value     | **Initiative**         | Business Objectives, Value Proposition, Roadmap    |
 | 🧩 **Customer-Facing Iterations** | 2-4 sprints        | User Experience    | **Epic**               | Feature Sets, User Journeys, Integration Points    |
-| 🛠️ **Continuous Value Delivery**  | 1 sprint           | Working Software   | **User Story (&Task)** | Deliverable Features, Code Quality, User Feedback  |
+| 🛠️ **Continuous Value Delivery** | 1 sprint           | Working Software   | **User Story (&Task)** | Deliverable Features, Code Quality, User Feedback  |
 
 ---
 
 ## Operational Flow
+
+### 🔍 Discovery (optional entry point, before any level)
+
+- **🤖🤝👨‍💻 Structured Discovery** (`/pair-process-brainstorm`) → Turn a rough theme, or an existing epic/story `$root`, into an integrated **Draft** epic/story tree (interview → domain → triage). Human-initiated and optional: it feeds the levels below and never modifies the PRD. It is not one of the nine numbered steps and has no numbered how-to guide — see the ADL on `/pair-process-brainstorm`'s catalog exceptions.
 
 ### 📘 Induction
 
 1. **🤖🤝👨‍💻 PRD Creation** (`/pair-process-specify-prd`) → Generate Product Requirements Document from user needs & market insights
 2. **🤖🤝👨‍💻 Bootstrap Checklist Completion** (`/pair-process-bootstrap`) → Define technical context and operational framework through comprehensive project assessment
 3. **🤖🤝👨‍💻 Initiative Prioritization** (`/pair-process-plan-initiatives`) → Identify and rank initiatives by impact
+
+> **Domain modeling (optional DDD)**: `/pair-capability-map-subdomains` and `/pair-capability-map-contexts` are scoped capabilities, not standalone induction steps — invoked with `$scope` by `/pair-process-plan-initiatives`, `/pair-process-plan-epics`, `/pair-process-refine-story`, `/pair-process-plan-tasks`, or with full scope by `/pair-process-bootstrap`. No DDD prerequisite: projects without subdomain/bounded-context artifacts fall back to "system areas".
 
 ### 🚀 Strategic Initiatives
 
@@ -76,4 +82,4 @@ The process is designed to:
 2. **🤖🤝👨‍💻 Code Review** (`/pair-process-review`) → Structured review with adoption compliance, merge flow, and parent cascade
 3. **🤖⚡ Status Update** → Automatic story/epic/initiative tracking update (handled by `/pair-process-implement` and `/pair-process-review`)
 
-> **Skill-enabled workflow**: Run `/pair-next` at session start to determine the most relevant skill. See [skills-guide.md](skills-guide.md) for the full catalog (29 skills: 9 process + 19 capability + 1 navigator).
+> **Skill-enabled workflow**: Run `/pair-next` at session start to determine the most relevant skill. See [skills-guide.md](skills-guide.md) for the full catalog of 51 skills.

@@ -1,17 +1,15 @@
 ---
 name: pair-capability-execute-manual-tests
-description: "Executes a project's manual test suite against released artifacts, producing a structured report. Resolves test variables, iterates through critical paths, records PASS/FAIL per test case, and generates the report from the manual-test-report template. Invocable independently or composed by /pair-process-review (post-merge validation)."
+description: "Executes a project's manual test suite against released or deployed artifacts, producing a structured PASS/FAIL report per critical path. Not for running the automated test suite (use /pair-capability-verify-quality). Composed by /pair-process-review for post-merge validation."
 version: 0.4.1
 author: Foomakers
 ---
 
 # /pair-capability-execute-manual-tests — Manual Test Suite Executor
 
-Execute a manual test suite against released or deployed artifacts (website, CLI packages, registries). Produces a structured report following the [manual-test-report-template](../../../.pair/knowledge/guidelines/collaboration/templates/manual-test-report-template.md).
+Execute a manual test suite against released or deployed artifacts (website, CLI packages, registries). Produces a structured report following the [manual-test-report-template](../../../.pair/knowledge/guidelines/collaboration/templates/manual-test-report-template.md) (resolve override-first — [template resolution](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/template-resolution.md)).
 
-Reads test case files from the project's manual test suite directory. Each test case follows the format defined in [manual-test-case-template](../../../.pair/knowledge/guidelines/collaboration/templates/manual-test-case-template.md).
-
-For the organizational context (who, when, which areas), see [manual-verification.md](../../../.pair/knowledge/guidelines/quality-assurance/manual-verification.md). For test case design principles, see [manual-testing.md](../../../.pair/knowledge/guidelines/quality-assurance/manual-testing.md).
+Reads test case files from the project's manual test suite directory; each follows the [manual-test-case-template](../../../.pair/knowledge/guidelines/collaboration/templates/manual-test-case-template.md). Organizational context (who, when, which areas): [manual-verification.md](../../../.pair/knowledge/guidelines/quality-assurance/manual-verification.md); test case design principles: [manual-testing.md](../../../.pair/knowledge/guidelines/quality-assurance/manual-testing.md).
 
 ## Arguments
 
@@ -37,25 +35,21 @@ Execute in sequence. For every step, follow the **check → skip → act → ver
 
 ### Step 2: Resolve Variables
 
-1. **Check**: Are all required variables resolvable (`$VERSION`, `$BASE_URL`, `$WORKDIR`, `$RELEASE_URL`, `$REGISTRY`)?
+1. **Check**: Are all variables declared in the suite `README.md` Variables table resolvable?
 2. **Skip**: Variables already provided via arguments.
-3. **Act**: For each unresolved variable:
+3. **Act**: For each unresolved variable, follow the "How to resolve" column in the suite README. Common patterns:
    - `$VERSION`: extract from artifact (`--version` flag) or release tag.
    - `$BASE_URL`: read from deployment config, adoption files, or ask the user.
    - `$WORKDIR`: create isolated temp directory: `mktemp -d /tmp/manual-test.XXXXX`.
    - `$RELEASE_URL`: derive from `$VERSION` and repo URL.
-   - `$REGISTRY`: read from adoption files or default.
-   - **Additional variables**: resolve any extra variables declared in the suite `README.md` Variables table (e.g. auth tokens, config files). Follow the "How to resolve" column for each.
+   - **Project-specific variables**: resolve per the suite README instructions (e.g., auth tokens, registry URLs, API keys).
 4. **Verify**: All variables resolved. Present to user for confirmation:
 
 ```text
 VARIABLES RESOLVED:
-├── VERSION:     [value]
-├── BASE_URL:    [value]
-├── WORKDIR:     [value]
-├── RELEASE_URL: [value]
-├── REGISTRY:    [value]
-└── [additional]: [per suite README]
+├── [var1]:      [value]
+├── [var2]:      [value]
+└── [varN]:      [value]
 ```
 
 Ask: _"Proceed with these values?"_
@@ -146,7 +140,7 @@ When composed by `/pair-process-review` (Phase 6, post-merge):
   - Results are appended to the review report as an addendum.
 - **Scope**: /pair-process-review passes `$scope = P0` (blockers only) for fast post-merge validation. Full suite runs standalone.
 
-When composed by `/pair-capability-verify-done` (Step 5.5, optional):
+When composed by `/pair-capability-verify-done` (Step 11, optional):
 
 - **Input**: /pair-capability-verify-done checks if a manual test report exists for the current version with PASS result.
 - **Output**: Returns PASS (report exists and passing) or SKIPPED (no suite or no report).
@@ -168,11 +162,13 @@ To maximize reliability when executed by AI agents:
 - **Version from artifact**: extract from the artifact itself, never from source code.
 - **Isolated filesystem**: `$WORKDIR` must be outside the repo to avoid workspace interference.
 - **Clean npm environment**: use `--no-workspaces`, ensure no `.npmrc` inheritance from parent dirs.
-- **Idempotent re-run**: re-executing produces the same result without manual cleanup.
+- **Idempotent** — see [idempotency convention](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/idempotency.md). This skill's check: re-executing produces the same result without manual cleanup.
 
 ## Graceful Degradation
 
-- **No test suite found**: HALT with guidance to run `/pair-capability-design-manual-tests` first.
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (guideline/template missing → use a minimal structure directly) for the standard scenarios. Additional cases:
+
+- **No test suite found**: HALT with guidance to run `/pair-capability-design-manual-tests` first (a required dependency, not optional).
 - **`agent-browser` not available**: Fall back to Playwright MCP. If Playwright MCP also unavailable, fall back to WebFetch/curl for HTTP checks. Mark interactive tests (search, responsive) as BLOCKED.
 - **No internet**: Skip tests requiring network (website, registry, auto-download). Mark as BLOCKED with reason.
 - **Suite-specific variable not resolvable**: Mark dependent tests as BLOCKED with the resolution hint from the suite README.

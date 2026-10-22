@@ -1,13 +1,19 @@
 ---
 name: pair-process-plan-initiatives
-description: "Creates strategic initiatives from PRD analysis. Prioritizes by business impact (P0/P1/P2), composes /pair-capability-write-issue with $type: initiative. Idempotent: detects existing initiatives, creates only missing ones."
-version: 0.4.1
+description: "Turns a PRD into prioritized (P0/P1/P2) strategic initiatives through structured analysis and validation. Composes /pair-capability-write-issue."
+version: 0.5.0
 author: Foomakers
 ---
 
 # /pair-process-plan-initiatives — Strategic Initiative Creation
 
 Transform Product Requirements Documents into strategic initiatives through PRD analysis, prioritization, and collaborative validation. Composes `/pair-capability-write-issue` for PM tool integration.
+
+## Process Profile
+
+<!-- process-step: id=plan-initiatives -->
+
+Executable form of the **`plan-initiatives`** step. A **direct** invocation while a step is disabled by the project's profile warns and asks for confirmation; a **composed** one never prompts — it degrades exactly as a step that is not installed. No section ⇒ no-op. See [process-profile gate](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/process-profile-gate.md).
 
 ## Composed Skills
 
@@ -34,7 +40,7 @@ Transform Product Requirements Documents into strategic initiatives through PRD 
 
    > Prerequisites incomplete: [list missing]. Complete bootstrap first (`/pair-process-bootstrap`).
 
-4. **Verify**: PRD loaded, PM tool identified.
+4. **Verify**: PRD.md has project-specific (non-template) content, `.pair/adoption/tech/` has way-of-working.md/architecture.md/tech-stack.md, and way-of-working.md names an accessible PM tool — the "prerequisites present" check from Step 0.
 
 ### Step 1: Detect Existing Initiatives
 
@@ -90,7 +96,7 @@ Process initiatives by priority (P0 → P1 → P2). For each initiative:
 
    > Initiative `[Title]` already exists (#ID). Skipping.
 
-3. **Act**: Draft the initiative following the [initiative-template.md](../../../.pair/knowledge/guidelines/collaboration/templates/initiative-template.md):
+3. **Act**: Draft the initiative following the [initiative-template.md](../../../.pair/knowledge/guidelines/collaboration/templates/initiative-template.md) (resolve override-first — [template resolution](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/template-resolution.md)):
    - Fill template sections with PRD-derived content.
    - Include business rationale, scope, success metrics, risk assessment, timeline.
    - Present to developer for validation.
@@ -122,8 +128,10 @@ INITIATIVES COMPLETE:
 ├── Skipped:  [Y existing]
 ├── Priority: [P0: A, P1: B, P2: C]
 ├── PM Tool:  [adopted tool]
-└── Next:     /pair-process-plan-epics
+└── Next:     /map-subdomains (scoped to this initiative) or /plan-epics
 ```
+
+The `Next:` line names only steps enabled by the project's [process profile](../../../.pair/knowledge/guidelines/technical-standards/ai-development/process-profiles.md): a disabled one is dropped, and when none is left the line names no skill.
 
 ## HALT Conditions
 
@@ -134,14 +142,12 @@ INITIATIVES COMPLETE:
 
 ## Graceful Degradation
 
-- If `/pair-capability-write-issue` is not installed, warn and provide formatted initiative content for manual PM tool entry.
-- If the PM tool is not accessible, produce initiative documents and ask developer to create manually.
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (optional skill `/pair-capability-write-issue` not installed / PM tool not accessible → produce initiative documents, ask developer to create manually) for the standard scenarios. Additional cases:
+
 - If adoption files (architecture, tech-stack) are missing, proceed with PRD analysis only and warn.
 
 ## Notes
 
 - This skill **modifies PM tool state** — creates initiative issues.
-- Idempotent: re-invocation detects existing initiatives by title matching and skips them.
+- **Idempotent** — see [idempotency convention](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/idempotency.md). This skill's check: detects existing initiatives by title matching and skips them.
 - Initiative = highest-level work item. Hierarchy: initiative → epic → story → task.
-- The prioritization framework (P0/P1/P2) aligns with PRD business objectives — P0 = launch-critical, P1 = growth, P2 = enhancement.
-- After initiative creation, proceed to `/pair-process-plan-epics` for epic breakdown.

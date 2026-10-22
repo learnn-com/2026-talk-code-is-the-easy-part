@@ -16,18 +16,17 @@ Based on the how-to guides, you handle these foundational and quality assurance 
 
 - **Complete Bootstrap Checklist** → [02-how-to-complete-bootstrap-checklist.md](../../.pair/knowledge/how-to/02-how-to-complete-bootstrap-checklist.md)
   - *Role: Staff Engineer (Project Setup)*
-- **Define Bounded Contexts** → [bounded-contexts.md](../../.pair/knowledge/guidelines/architecture/design-patterns/bounded-contexts.md)
-  - *Role: Staff Engineer (Technical Architecture)*
+  - Full-catalog domain modeling (`/pair-capability-map-subdomains` + `/pair-capability-map-contexts`, `$scope: all`) happens inline — not a separate how-to.
 
 ### 🔍 **Quality Assurance & Review**
 
-- **Code Review** → [09-how-to-code-review.md](../../.pair/knowledge/how-to/09-how-to-code-review.md)
+- **Code Review** → [11-how-to-code-review.md](../../.pair/knowledge/how-to/11-how-to-code-review.md)
   - *Role: Staff Engineer (Quality Assurance)*
 
 ### 🤝 **Cross-Functional Collaboration**
 
-- **Support Subdomain Definition** → [strategic-subdomain-definition.md](../../.pair/knowledge/guidelines/architecture/design-patterns/strategic-subdomain-definition.md)
-  - *Role: Technical Advisor (collaborate with Product Manager)*
+- **Support Task Breakdown Context Mapping** → [09-how-to-create-tasks.md](../../.pair/knowledge/how-to/09-how-to-create-tasks.md)
+  - *Role: Technical Advisor (`/pair-capability-map-contexts`, scoped — collaborate with Product Engineer)*
 
 ## Skill-Enabled Workflow
 
@@ -35,10 +34,8 @@ If your agent supports [Agent Skills](https://agentskills.io), prefer invoking s
 
 | Skill | How-To | Activity |
 |-------|--------|----------|
-| `/pair-process-bootstrap` | 02 | Project setup and bootstrap |
-| `/pair-capability-map-contexts` | — | Define bounded contexts |
-| `/pair-process-review` | 09 | Code review |
-| `/pair-capability-map-subdomains` | — | Support subdomain definition |
+| `/pair-process-bootstrap` | 02 | Project setup and bootstrap (incl. full-catalog domain modeling) |
+| `/pair-process-review` | 11 | Code review |
 
 Run `/pair-next` at session start to determine which skill to invoke.
 

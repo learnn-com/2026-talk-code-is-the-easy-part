@@ -1,54 +1,45 @@
 ---
 name: pair-capability-assess-ai
-description: "Assess AI development tools using resolution cascade (Argument > Adoption > Assessment). Reads AI development guidelines, proposes AI tool choices with versions, writes AI section of tech-stack.md, composes /pair-capability-record-decision. Idempotent."
-version: 0.4.1
+description: "Evaluates and recommends AI development tools — coding assistants (Copilot, Claude Code, Cursor), agent frameworks, MCP integrations, models — when the choice is open. Output-only: emits a proposal + target for /pair-capability-record-decision to persist."
+version: 0.7.0
 author: Foomakers
 ---
 
 # /pair-capability-assess-ai — AI Development Assessment
 
-Evaluate and decide on AI development tools: AI assistants, MCP integrations, AI-specific SDKs, and models. Follows the resolution cascade.
+Evaluate and recommend AI development tools: AI assistants, MCP integrations, AI-specific SDKs, and models. Follows the resolution cascade. **Output-only**: produces a proposal (rendered AI-section content + target) plus a report — writes no files. Persistence is delegated to `/pair-capability-record-decision`.
 
 ## Arguments
 
 | Argument  | Required | Description                                                                            |
 | --------- | -------- | -------------------------------------------------------------------------------------- |
 | `$choice` | No       | Override: skip assessment, use this AI tool directly (e.g. `claude-code`, `cursor`) |
+| `$approval` | No     | Approval-round mode: `interactive` (default — every round runs as written) or `auto` (ask nothing — three outcomes, all reported on the `Approval` line: a proposal is accepted as-is; an existing recorded value is kept and the delta reported unapplied; a call the skill cannot make alone yields **no proposal**, reported unresolved). See [approval rounds](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/approval-rounds.md). |
 
 ## Composed Skills
 
-| Skill              | Type       | Required                                    |
-| ------------------ | ---------- | ------------------------------------------- |
-| `/pair-capability-record-decision` | Capability | Yes — records AI tool decision as ADL       |
+**Output-only** — composes no skill, writes no files; the caller persists via `/pair-capability-record-decision` (see [Composition Interface](#composition-interface)).
 
-## Adoption File
+## Proposal Target
+
+The rendered adoption content is destined for this section — the caller writes it via `/pair-capability-record-decision`:
 
 - **Target**: [adoption/tech/tech-stack.md](../../../.pair/adoption/tech/tech-stack.md) — **AI section only**
 - **Ownership**: AI section (shared file — /pair-capability-assess-stack owns core sections, /pair-capability-assess-testing owns testing section)
 
 ## Algorithm
 
+### Scoped Context (package-local override)
+
+Opt-in. When the central adoption file carries a `## Package-Local Adoption` router, resolve the rule set per [scoped context resolution](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/scoped-context-resolution.md) (diff-scoped here: globals + `<pkg>/.pair/` of the packages the diff touches, nothing else); report a central↔local conflict, a dangling router entry, and — when the [complexity signals](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/package-local-adoption.md#activation-proposal) fire — PROPOSE the override and wait for approval, never activate. No router ⇒ unchanged behaviour.
+
 ### Step 1: Resolution Cascade
 
-#### Path A — Argument Override
+Read [resolution cascade](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/resolution-cascade.md) for the generic Path A/B/C mechanics (check → skip → act → verify). Paths A and B carry their `$approval` qualification **there** — it is never restated per skill; only the rounds Path C adds below are qualified here.
 
-1. **Check**: Is `$choice` provided?
-2. **Skip**: If not provided, go to Path B.
-3. **Act**: Confirm the choice. Check for conflicts with existing adoption.
-4. **Verify**: Developer confirms. Proceed to Step 3.
-
-#### Path B — Adoption Exists
-
-1. **Check**: Does [adoption/tech/tech-stack.md](../../../.pair/adoption/tech/tech-stack.md) exist and contain a populated **AI** section?
-2. **Skip**: If no AI section or empty, go to Path C.
-3. **Act**: Read current AI adoption. Confirm it's valid.
-4. **Check**: Does a corresponding decision record exist?
-5. **Act**: If decision record missing, compose `/pair-capability-record-decision` to backfill.
-6. **Verify**: Done — exit skill.
-
-#### Path C — Full Assessment
-
-1. **Act**: Proceed to Step 2.
+- **Path A delta**: override argument is `$choice`. On confirm, proceed to Step 3.
+- **Path B delta**: adoption check is [adoption/tech/tech-stack.md](../../../.pair/adoption/tech/tech-stack.md) — populated **AI** section. If a corresponding decision record is missing, report the gap (this skill still writes nothing; the caller persists a backfill via `/pair-capability-record-decision`).
+- **Path C delta**: proceed to Step 2.
 
 ### Step 2: Read Guidelines
 
@@ -59,7 +50,7 @@ Evaluate and decide on AI development tools: AI assistants, MCP integrations, AI
 2. **Act**: Read project context:
    - [adoption/product/PRD.md](../../../.pair/adoption/product/PRD.md) — AI requirements, team size
    - [adoption/tech/tech-stack.md](../../../.pair/adoption/tech/tech-stack.md) — existing stack (AI tools must integrate)
-3. **Verify**: Guidelines and context loaded.
+3. **Verify**: Every file listed in 1-2 above has been read; any that's missing follows [Graceful Degradation](#graceful-degradation) (ask the developer directly) instead of silently proceeding to Step 3.
 
 ### Step 3: Evaluate Options
 
@@ -88,64 +79,67 @@ Evaluate and decide on AI development tools: AI assistants, MCP integrations, AI
    > - AI maturity target: Level [N]
    > - Additional tools: [list with versions]
 
-5. **Verify**: Developer approves.
+5. **Verify** (`$approval: interactive`): Developer approves. Under `auto` the recommendation above is accepted as-is and reported in the Output Format, never asked. <!-- approval-round: kind=confirm; auto=accept -->
 
-### Step 4: Write Adoption File
+### Step 4: Render Adoption Proposal
 
-1. **Act**: Write or update **only the AI section** of [tech-stack.md](../../../.pair/adoption/tech/tech-stack.md):
+1. **Act**: Render the **AI section** content — the ready-to-write body for tech-stack.md:
    - AI assistants with versions/tiers
    - MCP integrations if applicable
    - AI-specific SDKs and libraries with versions
-   - Preserve all other sections (core, testing)
-2. **Verify**: AI section written. Other sections preserved.
+   - Scope strictly to the AI section so the caller's write preserves all other sections (core, testing)
+2. **Verify**: The rendered `content` and its `target` are ready to emit.
 
-### Step 5: Record Decision
+### Step 5: Emit Proposal
 
-1. **Act**: Compose `/pair-capability-record-decision`:
-   - `$type`: `non-architectural`
-   - `$topic`: `ai-development-tools`
-   - `$summary`: "[Primary tool] adopted as AI development assistant with [maturity level] target"
-2. **Verify**: ADL created. Adoption consistent.
+1. **Act**: Emit the proposal to the caller:
+   - `content`: the rendered AI-section body from Step 4
+   - `target`: [adoption/tech/tech-stack.md](../../../.pair/adoption/tech/tech-stack.md) (AI section)
+   - `decision-metadata`: `$type: non-architectural`, `$topic: ai-development-tools`, `$summary: "[Primary tool] adopted as AI development assistant with [maturity level] target"`
+   - plus the human-facing report (see Output Format)
+2. **Verify**: Proposal emitted — see [record-decision invocation contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md) for the persistence contract (persistence is always the caller's responsibility, delegated to `/pair-capability-record-decision`).
 
 ## Output Format
 
+Follows the [Decision Shape](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/output-shapes.md#decision-shape).
+
 ```text
-ASSESSMENT COMPLETE:
+ASSESSMENT COMPLETE (output-only — no files written):
 ├── Domain:    AI Development
 ├── Path:      [Argument Override | Adoption Exists | Full Assessment]
 ├── Decision:  [primary tool + maturity level + additional tools]
-├── Adoption:  [tech-stack.md AI section — written | confirmed | updated]
-├── Record:    [ADL path — created | exists | backfilled]
-└── Status:    [Complete | Confirmed existing]
+├── Proposal:  [content rendered for tech-stack.md AI section]
+├── Target:    adoption/tech/tech-stack.md (AI section)
+├── Persist:   [caller composes /record-decision(content, target) → ADL]
+├── Approval:  [interactive — approved | auto — accepted as-is | auto — existing kept, delta not applied | auto — UNRESOLVED, no proposal]
+└── Status:    [Proposal ready | Confirmed existing | Unresolved — no proposal]
 ```
 
 ## Composition Interface
 
+See [record-decision invocation contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md) for the generic tuple + Input/Output/Persistence shape.
+
 When composed by `/pair-process-bootstrap`:
 
 - **Input**: `/pair-process-bootstrap` invokes during Phase 2.
-- **Output**: Returns decision summary and adoption file path.
+- **Persistence**: `/pair-process-bootstrap` composes `/pair-capability-record-decision` to write the AI section and record the ADL.
 
-When invoked **independently**:
-
-- Full interactive flow. Developer commits changes.
+When invoked **independently**: the human (or agent) persists the proposal by composing `/pair-capability-record-decision`, then commits.
 
 ## Edge Cases
 
-- **tech-stack.md exists but no AI section**: Add AI section, preserve all other content.
-- **Project doesn't use AI tools**: Write minimal section noting "AI development tools not adopted — [reason]".
+- **tech-stack.md exists but no AI section**: Render content that adds the AI section; the caller's write preserves all other content.
+- **Project doesn't use AI tools**: Render a minimal section noting "AI development tools not adopted — [reason]" for the caller to persist.
 - **Multiple AI assistants**: Document primary and secondary with roles (e.g. primary for coding, secondary for architecture review).
 - **MCP adoption requires infrastructure changes**: Recommend composing /pair-capability-assess-infrastructure for infra implications.
 
 ## Graceful Degradation
 
-- If AI development guidelines not found, use minimal assessment: ask developer for AI tool preferences.
-- If `/pair-capability-record-decision` not installed, warn and skip recording.
-- If tech-stack.md doesn't exist, create it with AI section. Warn: "Created tech-stack.md — core sections should be populated by /pair-capability-assess-stack."
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (guideline missing → ask developer for AI tool preferences directly) and [record-decision contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md) (persistence unavailable → proposal stands as a report) for the standard scenarios. No additional cases.
 
 ## Notes
 
-- AI tool decisions are **non-architectural** → produce ADL. Exception: if MCP integration fundamentally changes system architecture, use ADR.
-- **Section ownership**: this skill writes ONLY the AI section of tech-stack.md.
+- AI tool decisions are **non-architectural** → the caller records them as an ADL. Exception: if MCP integration fundamentally changes system architecture, the caller uses ADR.
+- **Section ownership**: this skill renders content ONLY for the AI section of tech-stack.md. The single adoption writer is `/pair-capability-record-decision`.
 - **Version tracking**: every AI tool includes version or tier (e.g. "Claude Code", "GPT-4o", "Cursor Pro").
 - Educational content (AI development principles, best practices, WHY) stays in guidelines.

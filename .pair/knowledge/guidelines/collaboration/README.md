@@ -30,7 +30,7 @@ This framework does not cover:
 
 **[Methodology](methodology/README.md)** - Project management methodology selection and implementation guidance including Agile, Scrum, Kanban, Lean, and SAFe frameworks
 
-**[Project Management Tool](project-management-tool/README.md)** - Project management tool selection, setup, and implementation guidance for GitHub Projects and filesystem-based approaches
+**[Project Management Tool](project-management-tool/README.md)** - Project management tool selection, setup, and implementation guidance for GitHub Projects and filesystem-based approaches; includes the [canonical states + state-mapping schema](project-management-tool/canonical-states.md) skills use to resolve board-specific state names
 
 **[Project Tracking](project-tracking/README.md)** - Project progress monitoring and reporting strategies with metrics collection and stakeholder communication
 
@@ -53,6 +53,10 @@ This framework does not cover:
 ### Decision Records
 
 **[Decision Records](decision-records.md)** - ADR (Architecture Decision Records) and ADL (Adoption Decision Log) formats, file naming conventions, and integration with skills
+
+### Operational Conventions
+
+**[Working Area](working-area.md)** - `.pair/working/` convention: checkpoints and reports, the period-keyed idempotent **report-panel** convention (one file per period, headline-first), exclusion from KB registries (D14), and the `working_path` override
 
 ## Introduction to Collaboration Excellence
 

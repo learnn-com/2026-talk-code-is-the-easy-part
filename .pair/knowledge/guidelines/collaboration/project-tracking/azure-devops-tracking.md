@@ -4,175 +4,172 @@ Azure Boards configuration and hierarchical project tracking for comprehensive p
 
 ## Overview
 
-This guide covers Azure Boards setup for tracking initiatives, epics, product backlog items (PBI), and tasks with comprehensive progress monitoring and reporting capabilities.
+This guide covers Azure Boards setup for tracking initiatives, epics, user stories, and tasks with progress monitoring and reporting via WIQL queries and Analytics. Tool setup and authentication live in [azure-devops-implementation.md](../project-management-tool/azure-devops-implementation.md).
 
 ## Board Setup
 
-### Board Configuration
+### Backlog Levels
 
-Azure Boards uses a Kanban-style board with columns mapped to work item states.
+Azure Boards ships three backlog levels that host pair's hierarchy:
 
-**PBI Board Columns:**
+| Backlog Level | Work Item Type (Scrum) | pair Concept |
+| ------------- | ---------------------- | ------------ |
+| Epics         | Epic                   | Initiative   |
+| Features      | Feature                | Epic         |
+| Backlog items | Product Backlog Item   | User Story   |
 
-- `New` - Items appena aggiunti al backlog
-- `Committed` - Items committed in sprint
-- `Approved` - Items discussi e approvati
-- `Done` - Items con PR associata chiusa
+Tasks appear on the sprint Taskboard, nested under their story. Enable all levels: Project Settings → Team configuration → Backlogs.
 
-**Task Board Columns:**
+### Board Columns
 
-- `To Do` - Task non ancora iniziati
-- `In Progress` - Task in corso di sviluppo
-- `Done` - Task con PR creata
+Each backlog level has its own board. Columns are team-configurable and typically differ from pair's canonical states — but a column only relabels an existing **state** visually, it does not create one. Resolve states through the `## State Mapping` section in `way-of-working.md` ([canonical-states.md](../project-management-tool/canonical-states.md) documents the schema, the Azure Boards example, and the routes to a `Review` state).
 
-### Swim Lanes (Optional)
+#### Recommended Story Board Columns
 
-- **Expedite**: Urgent items that bypass normal flow
-- **Standard**: Normal priority items
-- **Blocked**: Items waiting on external dependencies
+- `New` - Items not yet refined (→ Draft)
+- `Approved` - Stories ready for development (→ Ready)
+- `Committed` - Active work items (→ In Progress)
+- `In Review` - Items in code review (→ Review; requires either an inherited-process custom state, or reusing `Committed` and only splitting the column visually — see canonical-states.md Example 5)
+- `Done` - Completed items (→ Done)
 
-## Custom Fields
+#### Column Limits (WIP)
+
+- Committed: 3-5 items per team member
+- In Review: no more than 2x team size (whichever state is actually mapped to Review, per the note above)
+
+Configure via board settings → Columns (WIP limit per column).
+
+### Swimlanes
+
+Optional horizontal lanes for expedite/blocked flows: board settings → Swimlanes.
+
+## Custom Fields Configuration
+
+Custom fields require an **inherited process** (Organization Settings → Process → create inherited → change the project's process).
+
+### Effort / Story Points
+
+Built-in: `Microsoft.VSTS.Scheduling.Effort` (Scrum) or `Microsoft.VSTS.Scheduling.StoryPoints` (Agile) — no custom field needed.
+
+```bash
+az boards work-item update --id [id] --fields "Microsoft.VSTS.Scheduling.Effort=5"
+```
 
 ### Priority
 
-Azure DevOps uses built-in priority field:
-- **1** (P0) - Must-Have / Critical
-- **2** (P1) - Should-Have / High
-- **3** (P2) - Could-Have / Medium
-- **4** (P3) - Nice-to-Have / Low
+Built-in: `Microsoft.VSTS.Common.Priority` (1-4). pair mapping: P0→1, P1→2, P2→3.
 
-### Effort (Story Points = Hours)
+### Sprint / Iteration
 
-- **Field**: `Microsoft.VSTS.Scheduling.StoryPoints` (on PBI)
-- **Convention**: 1 story point = 1 hour
-- **Remaining Work**: `Microsoft.VSTS.Scheduling.RemainingWork` (on Task)
-
-### Iteration Path
-
-- Sprint assignment via Iteration Path
-- Example: `learnn\Sprint 1`, `learnn\Sprint 2`
-
-## Hierarchy Tracking
-
-### Work Item Hierarchy
-
-```
-Initiative (Feature)
-└── Epic
-    └── Product Backlog Item (PBI / User Story)
-        └── Task
-```
-
-### Creating Hierarchy via CLI
+Built-in: `System.IterationPath`.
 
 ```bash
-# Create PBI
-PBI_ID=$(az boards work-item create \
-  --title "[WEB] User Story Title" \
-  --type "Product Backlog Item" \
-  --organization https://dev.azure.com/learnn \
-  --project learnn \
-  --query id --output tsv)
+# Assign to a sprint
+az boards work-item update --id [id] --iteration "<project>\\Sprint 1"
 
-# Create Task as child
-TASK_ID=$(az boards work-item create \
-  --title "[WEB] Task Title" \
-  --type "Task" \
-  --fields "Microsoft.VSTS.Scheduling.RemainingWork=8" \
-  --organization https://dev.azure.com/learnn \
-  --project learnn \
-  --query id --output tsv)
-
-# Link parent-child
-az boards work-item relation add \
-  --id $PBI_ID \
-  --relation-type child \
-  --target-id $TASK_ID \
-  --organization https://dev.azure.com/learnn \
-  --project learnn
+# Manage iterations
+az boards iteration project list --project <project>
 ```
 
-## Progress Metrics
+### Additional Custom Fields
 
-### Velocity Tracking
-
-Track story points (hours) completed per sprint:
+Add via the inherited process UI when needed (e.g., `Team`, `Confidence`). Reference them in CLI updates by full name:
 
 ```bash
-# Query completed PBIs in current sprint
-az boards query --wiql "SELECT [System.Id], [System.Title], [Microsoft.VSTS.Scheduling.StoryPoints] FROM workitems WHERE [System.WorkItemType] = 'Product Backlog Item' AND [System.State] = 'Done' AND [System.IterationPath] = 'learnn\\Sprint X'" \
-  --organization https://dev.azure.com/learnn \
-  --project learnn
+az boards work-item update --id [id] --fields "Custom.Team=Backend"
 ```
 
-### Burndown
+## Hierarchical Tracking
 
-Azure DevOps provides built-in burndown charts:
-- Navigate to: Boards -> Sprints -> Analytics
-- Select: Sprint Burndown widget
-- Tracks remaining work over time
-
-### Cycle Time
-
-- **Cycle Time**: Time from "Committed" to "Done"
-- Available via: Analytics -> Cycle Time widget
-- Helps identify bottlenecks in the workflow
-
-### Lead Time
-
-- **Lead Time**: Time from "New" to "Done"
-- Available via: Analytics -> Lead Time widget
-
-## Useful Queries
-
-### Active Sprint Items
+### Tree Queries (WIQL)
 
 ```bash
-az boards query --wiql "SELECT [System.Id], [System.Title], [System.State], [System.AssignedTo] FROM workitems WHERE [System.WorkItemType] = 'Product Backlog Item' AND [System.State] <> 'Done' AND [System.IterationPath] UNDER 'learnn' ORDER BY [Microsoft.VSTS.Common.Priority]" \
-  --organization https://dev.azure.com/learnn \
-  --project learnn
+# Full tree under an initiative (epic work item)
+az boards query --wiql \
+  "SELECT [System.Id], [System.WorkItemType], [System.Title], [System.State] \
+   FROM WorkItemLinks \
+   WHERE [Source].[System.Id] = [initiative_id] \
+     AND [System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward' \
+   MODE (Recursive)"
 ```
 
-### Blocked Items
+### Progress Rollup
+
+Boards shows child-completion rollup on Features and Epics natively (Rollup column on backlog views). For scripted rollup, count children by state:
 
 ```bash
-az boards query --wiql "SELECT [System.Id], [System.Title], [System.State] FROM workitems WHERE [System.Tags] CONTAINS 'blocked' ORDER BY [Microsoft.VSTS.Common.Priority]" \
-  --organization https://dev.azure.com/learnn \
-  --project learnn
+# Stories under a feature, grouped by state (parse client-side)
+az boards query --wiql \
+  "SELECT [System.Id], [System.State] \
+   FROM WorkItemLinks \
+   WHERE [Source].[System.Id] = [feature_id] \
+     AND [System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward' \
+   MODE (MustContain)"
 ```
 
-### Items Without Estimates
+## Metrics and Reporting
+
+### WIQL Metric Queries
 
 ```bash
-az boards query --wiql "SELECT [System.Id], [System.Title] FROM workitems WHERE [System.WorkItemType] = 'Product Backlog Item' AND [Microsoft.VSTS.Scheduling.StoryPoints] = '' AND [System.State] <> 'Done'" \
-  --organization https://dev.azure.com/learnn \
-  --project learnn
+# Throughput: items closed in the last 14 days
+az boards query --wiql \
+  "SELECT [System.Id] FROM WorkItems \
+   WHERE [System.WorkItemType] = 'Product Backlog Item' \
+     AND [Microsoft.VSTS.Common.ClosedDate] >= @Today - 14"
+
+# Current WIP
+az boards query --wiql \
+  "SELECT [System.Id] FROM WorkItems \
+   WHERE [System.State] = 'Committed'"
+
+# Aging: open items untouched for 7+ days
+az boards query --wiql \
+  "SELECT [System.Id], [System.ChangedDate] FROM WorkItems \
+   WHERE [System.State] <> 'Done' \
+     AND [System.ChangedDate] <= @Today - 7"
 ```
 
-## Dashboards
+### Built-in Analytics
 
-### Recommended Widgets
+- **Velocity chart** — per-team, per-iteration Effort delivered (Boards → Backlogs → Analytics)
+- **Cumulative Flow Diagram** — column-level flow and bottlenecks (Boards → board → Analytics)
+- **Sprint Burndown** — remaining work within the iteration
+- **Dashboards** — Project → Dashboards; add Velocity, CFD, Burndown, and query-tile widgets
 
-1. **Sprint Burndown** - Track sprint progress
-2. **Velocity** - Historical velocity chart
-3. **Cumulative Flow Diagram** - Visualize work-in-progress
-4. **Cycle Time** - Average time to complete items
-5. **Query Results** - Custom queries for specific views
+### Cycle and Lead Time
 
-## Workflow Integration with pair
+Cycle Time and Lead Time widgets are available on dashboards (backed by Analytics). They align with pair metrics:
 
-### Status Flow per Step
+- **Cycle time** — In Progress-mapped state → Done-mapped state
+- **Lead time** — creation → Done-mapped state
 
-```
-Step 8 (crea-pbi):      PBI created -> New
-Step 9 (task-breakdown): PBI -> Committed, Tasks created -> To Do
-Step 10 (implementa):    Task -> In Progress -> Done, PBI -> Approved
-Step 11 (review):        PBI -> Done (after PR merge)
-```
+## Best Practices
+
+### Data Quality
+
+- One state transition path: skills write states only through the state mapping
+- Effort filled at refinement (`/pair-process-refine-story`), not retroactively
+- Iteration assigned at sprint planning, kept current on carry-over
+
+### Workflow Integration
+
+- Track at the level you plan: initiatives quarterly, features per release, stories per sprint
+- Use rollup columns instead of manual progress fields
+- Keep queries under version control (documented WIQL in team docs) for repeatable reporting
+
+## Troubleshooting
+
+### Common Issues
+
+- **Empty tree queries**: parent links missing — verify relations with `az boards work-item show --id [id] --expand relations`
+- **Velocity chart empty**: Effort field not populated, or team not associated with the backlog level
+- **Custom field not found**: field exists only in the inherited process of another project — check the project's process
 
 ## Related Topics
 
-- [Azure DevOps Implementation](../project-management-tool/azure-devops-implementation.md) - CLI commands and setup
-- [Azure DevOps Automation](../automation/azure-devops-automation.md) - Board rules and pipelines
-- [Azure DevOps Issues](../issue-management/azure-devops-issues.md) - Work item management
-- [Estimation Guidelines](../estimation/README.md) - Story points and effort tracking
+- **[../issue-management/azure-devops-issues.md](../issue-management/azure-devops-issues.md)** - Work item creation and lifecycle
+- **[../automation/azure-devops-automation.md](../automation/azure-devops-automation.md)** - Automated status updates and board rules
+- **[../project-management-tool/azure-devops-implementation.md](../project-management-tool/azure-devops-implementation.md)** - Overall Azure DevOps setup
+- **[../project-management-tool/canonical-states.md](../project-management-tool/canonical-states.md)** - State mapping schema and Azure example
+- **[../estimation/](../estimation/README.md)** - Estimation methodology feeding Effort

@@ -13,14 +13,14 @@ Based on the how-to guides, you handle these development and implementation acti
 
 ### ⚙️ **Task & Implementation Management (Your Primary Domain)**
 
-- **Create Tasks** → [07-how-to-create-tasks.md](../../.pair/knowledge/how-to/07-how-to-create-tasks.md)
+- **Create Tasks** → [09-how-to-create-tasks.md](../../.pair/knowledge/how-to/09-how-to-create-tasks.md)
   - *Role: Product Engineer (Story Implementation Planning)*
-- **Implement Tasks** → [08-how-to-implement-a-task.md](../../.pair/knowledge/how-to/08-how-to-implement-a-task.md)
+- **Implement Tasks** → [10-how-to-implement-a-task.md](../../.pair/knowledge/how-to/10-how-to-implement-a-task.md)
   - *Role: Product Software Engineer (Implementation)*
 
 ### 📝 **Story Collaboration**
 
-- **Refine User Stories** → [06-how-to-refine-a-user-story.md](../../.pair/knowledge/how-to/06-how-to-refine-a-user-story.md)
+- **Refine User Stories** → [08-how-to-refine-a-user-story.md](../../.pair/knowledge/how-to/08-how-to-refine-a-user-story.md)
   - *Role: Product Engineer (Technical Refinement)*
   - *Note: Collaborate with Product Manager on technical aspects*
 
@@ -30,9 +30,9 @@ If your agent supports [Agent Skills](https://agentskills.io), prefer invoking s
 
 | Skill | How-To | Activity |
 |-------|--------|----------|
-| `/pair-process-plan-tasks` | 07 | Create task breakdown |
-| `/pair-process-implement` | 08 | Implement tasks |
-| `/pair-process-refine-story` | 06 | Refine user stories (collaboration) |
+| `/pair-process-plan-tasks` | 09 | Create task breakdown |
+| `/pair-process-implement` | 10 | Implement tasks |
+| `/pair-process-refine-story` | 08 | Refine user stories (collaboration) |
 
 Run `/pair-next` at session start to determine which skill to invoke.
 

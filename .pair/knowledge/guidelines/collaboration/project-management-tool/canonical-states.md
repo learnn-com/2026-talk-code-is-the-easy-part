@@ -171,10 +171,33 @@ Azure Boards' default Scrum **states** for Product Backlog Items are `New`, `App
 
 The `Removed` state is deliberately **unmapped** — removed items are out of scope for pair semantics and ignored (partial mapping is allowed by the n-m schema). Without a state mapped to `Review` (route (a) or (b) above), `Review` would have no mapped board state and a write targeting it would HALT per the write rules (route (c)).
 
+## Closure Without Completion
+
+Not every item that leaves the flow was delivered. An item can be closed because its premise was wrong, because another story already resolved it, or because it was folded into a different card. **None of those is `Done`.**
+
+**There is no sixth macrostate for this, by design.** The five macrostates exist so that a skill can *decide something*: `/pair-next` suggests, `/pair-capability-write-issue` writes, `/pair-process-refine-story` transitions. An item closed without completion asks nothing of any skill — it is outside the flow, exactly like the `Removed` board state above, which is deliberately left unmapped. What it needs is not a state of its own, but protection from being read as delivered.
+
+**The rule:**
+
+1. **It is never `Done`.** `Done` means delivered and accepted ([definition-of-ready-and-done.md](definition-of-ready-and-done.md)). A closure without completion is not a weaker `Done` — it is a different outcome.
+2. **The outcome lives in the tracker's native field**, not in a pair macrostate: GitHub `state_reason: not planned`, Jira a "Won't Do" resolution, Linear a cancelled state. Resolve it through the [routing table](../../technical-standards/ai-development/skill-conventions/way-of-working-pm-resolution.md) like any other tool-specific field.
+3. **The specific reason goes in a comment**, because the native field flattens causes whose consequences for the next reader are opposite:
+
+   | Reason                                                              | What the next reader must do                                              |
+   | -------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+   | **Premise was wrong** — the card mis-described its own object         | Do not re-file it: an identical card reaches the same wrong conclusion      |
+   | **Resolved elsewhere** — premise was valid, another story delivered it | Find where, and re-open only if that protection regresses                   |
+   | **Consolidated** — folded into another card                           | Follow the consolidation; the scope lives under a different number           |
+
+4. **It does not belong in the tracked view.** With no macrostate to map it to, board automation typically files any closed item under `Done` — precisely the misreading rule 1 forbids, and it inflates every per-epic rollup. Remove the item from the tracked view; the closed item and its comment are the record.
+
+A skill encountering such an item resolves it as "not in the tracked view" and ignores it, exactly as it does for `Removed`.
+
 ## Edge Cases and Error Handling
 
 | Case                                                     | Behavior                                                                 |
 | --------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Item closed without completion (not planned / won't do / cancelled) | **Never `Done`** — see [Closure Without Completion](#closure-without-completion): the outcome lives in the tracker's native field, the reason in a comment, and the item leaves the tracked view |
 | Board state not present in the map                        | Ignored for pair semantics — skill proceeds without error                |
 | Macrostate with no mapped board state, on a write request | Skill **HALTs** and reports the gap instead of guessing                  |
 | Malformed mapping (unparseable table, or one board state listed under two macrostates) | Skill **HALTs** with a pointer to this doc's [State-Mapping Schema](#state-mapping-schema) |
@@ -184,10 +207,12 @@ The `Removed` state is deliberately **unmapped** — removed items are out of sc
 | Skill           | Interaction                                                                                          |
 | ---------------- | ----------------------------------------------------------------------------------------------------- |
 | `/pair-capability-write-issue`   | Resolves a target macrostate (`$status`) to a board state before writing the board field (Writing rule above) |
-| `/pair-next`          | Resolves each item's board state to a macrostate before evaluating its cascade conditions (Reading rule above); applies the Readiness Fallback for Draft vs. Ready |
-| `/pair-process-refine-story`  | Produces `Ready` — writes it through `/pair-capability-write-issue`                                                  |
-| `/pair-process-implement`     | Produces `In Progress` / `Review` — writes through `/pair-capability-write-issue`                                    |
-| `/pair-process-review`        | Produces `Done` on merge — writes through `/pair-capability-write-issue`                                             |
+| `/pair-next`          | Resolves each item's board state to a macrostate before evaluating its cascade conditions (Reading rule above); applies the Readiness Fallback for Draft vs. Ready — both through its single **Control-State Resolution** procedure, which orchestration modes reference rather than re-derive; an unmapped state is reported out-of-process, never an error |
+| `/pair-process-refine-story`  | Produces `Ready` — writes it through `/pair-capability-write-issue` (it passes `$status` **and** renders a full body in the same call, so write mode is the right route) |
+| `/pair-process-implement`     | Produces `In Progress` / `Review` — **writes the board field directly**, applying `/pair-capability-write-issue` Step 7b (membership → a read that confirms it → the state field) **by reference** |
+| `/pair-process-review`        | Produces `Done` on merge — **writes the board field directly**, same application of Step 7b **by reference** (its terminal writes cover the story and its parent hierarchy) |
+
+**Why the last two do not compose the item writer:** a **state-only** change must not go through write mode — write mode is a **full-body overwrite**, so it would re-render the item and replace its AC/DoD/task breakdown (and, called without `$content`/`$type`, HALT instead). The ordering invariant is still single-sourced in `/pair-capability-write-issue` Step 7b; these callers **apply it by reference** and resolve `## State Mapping` themselves. A caller that renders the body anyway — refinement — composes as before.
 
 Rollout across the rest of the skill catalog happens organically in the stories that touch each skill — `/pair-capability-write-issue` and `/pair-next` are the first adopters.
 

@@ -30,12 +30,12 @@ The second row is the decisive one: the flagship reason a profile exists is a Po
 | `plan-initiatives`        | [`03-how-to-create-and-prioritize-initiatives.md`](../../../how-to/03-how-to-create-and-prioritize-initiatives.md) | `/pair-process-plan-initiatives` | `specify-prd`            |
 | `define-subdomains`       | —                                                                                                       | `/pair-capability-map-subdomains`   | —                                  |
 | `define-bounded-contexts` | —                                                                                                       | `/pair-capability-map-contexts`     | `define-subdomains`                |
-| `plan-epics`              | [`04-how-to-breakdown-epics.md`](../../../how-to/04-how-to-breakdown-epics.md)                          | `/pair-process-plan-epics`       | `plan-initiatives`, `brainstorm`   |
-| `plan-stories`            | [`05-how-to-breakdown-user-stories.md`](../../../how-to/05-how-to-breakdown-user-stories.md)            | `/pair-process-plan-stories`     | `plan-epics`, `brainstorm`         |
-| `refine-story`            | [`06-how-to-refine-a-user-story.md`](../../../how-to/06-how-to-refine-a-user-story.md)                  | `/pair-process-refine-story`     | `plan-stories`                     |
-| `plan-tasks`              | [`07-how-to-create-tasks.md`](../../../how-to/07-how-to-create-tasks.md)                                | `/pair-process-plan-tasks`       | `refine-story`                     |
-| `implement`               | [`08-how-to-implement-a-task.md`](../../../how-to/08-how-to-implement-a-task.md)                        | `/pair-process-implement`        | `plan-tasks`                       |
-| `review`                  | [`09-how-to-code-review.md`](../../../how-to/09-how-to-code-review.md)                                  | `/pair-process-review`           | `implement`                        |
+| `plan-epics`              | [`06-how-to-breakdown-epics.md`](../../../how-to/06-how-to-breakdown-epics.md)                          | `/pair-process-plan-epics`       | `plan-initiatives`, `brainstorm`   |
+| `plan-stories`            | [`07-how-to-breakdown-user-stories.md`](../../../how-to/07-how-to-breakdown-user-stories.md)            | `/pair-process-plan-stories`     | `plan-epics`, `brainstorm`         |
+| `refine-story`            | [`08-how-to-refine-a-user-story.md`](../../../how-to/08-how-to-refine-a-user-story.md)                  | `/pair-process-refine-story`     | `plan-stories`                     |
+| `plan-tasks`              | [`09-how-to-create-tasks.md`](../../../how-to/09-how-to-create-tasks.md)                                | `/pair-process-plan-tasks`       | `refine-story`                     |
+| `implement`               | [`10-how-to-implement-a-task.md`](../../../how-to/10-how-to-implement-a-task.md)                        | `/pair-process-implement`        | `plan-tasks`                       |
+| `review`                  | [`11-how-to-code-review.md`](../../../how-to/11-how-to-code-review.md)                                  | `/pair-process-review`           | `implement`                        |
 
 ## The three asymmetric steps, as declared data
 
