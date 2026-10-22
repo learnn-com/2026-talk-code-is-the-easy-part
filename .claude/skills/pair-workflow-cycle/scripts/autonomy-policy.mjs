@@ -114,7 +114,7 @@ export const gateToString = g => {
 export function parseValue(key, raw) {
   switch (key) {
     case 'filter':
-      return parseList('filter', raw)
+      return String(raw ?? '').trim() === '*' ? { value: ['*'] } : parseList('filter', raw)
     case 'status':
       return parseList('status', raw, { validate: v => (v.length === 0 ? 'is empty' : v.length > 40 || !/^[A-Za-z][A-Za-z0-9 _-]*$/.test(v) ? 'is not a macrostate name' : null) })
     case 'assignee': {

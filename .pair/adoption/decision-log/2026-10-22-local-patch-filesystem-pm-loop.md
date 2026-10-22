@@ -27,3 +27,7 @@ Patch the generated mirrors locally:
 ## Consequences
 
 Mirror drift vs pair-cli 0.5.1. Upstream bug filed in foomakers/pair.
+
+## Addendum — `filter: *`
+
+Reserved literal `*` in `## Autonomy` = no label filter (all cards in scope). `autonomy-policy.mjs` accepts it; `pair-loop.js` omits `--filter` from `/pair-next`. `tech/automation.md` uses `filter: *` and has no `## Eligibility`. The pair-cli driver (not patchable) prints a harmless warning "declares no `## Eligibility`: automation is off"; `## Eligibility: *` is rejected by the driver, so do not add it.
