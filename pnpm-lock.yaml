@@ -167,15 +167,15 @@ importers:
   .:
     devDependencies:
       '@foomakers/pair-cli':
-        specifier: 0.4.3
-        version: 0.4.3
+        specifier: 0.5.2
+        version: 0.5.2
 
 packages:
 
-  '@foomakers/pair-cli@0.4.3':
-    resolution: {integrity: sha512-gCe2L99TWYolsQfYczd8zeBk6MSq8qm1lN7M+h7wLPlzjqmPkDIUhAukPzhZDQTG/xvziPdNX9PXcdicD/rIeg==}
+  '@foomakers/pair-cli@0.5.2':
+    resolution: {integrity: sha512-MwpyDiB8zB8Nymz8NSkdAq+vviJcRYqVQoqqKuWX4Ovcu4MBnEILZYU+WayyvSiIcZmxqnznOY4J4pQjT8z/xg==}
     hasBin: true
 
 snapshots:
 
-  '@foomakers/pair-cli@0.4.3': {}
+  '@foomakers/pair-cli@0.5.2': {}

@@ -1,0 +1,2 @@
+minimumReleaseAgeExclude:
+  - '@foomakers/pair-cli@0.5.2'

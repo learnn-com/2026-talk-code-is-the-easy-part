@@ -9,11 +9,15 @@ Systematic workflow automation through intelligent process orchestration, task a
 This framework covers:
 
 - GitHub automation workflows and Actions
+- Azure DevOps board rules, branch policies, and service hooks
 - Filesystem-based automation scripts and utilities
 - Status synchronization between tools and platforms
 - Development workflow automation (branch, PR, deployment)
 - Project management automation (sprint planning, progress reporting)
 - Notification and communication automation
+- Unattended-development policy: which cards may run without a human (`tech/automation.md` — [automation-policy.md](automation-policy.md))
+- Workflow profiles: which engine, model, effort and context each delivery-cycle stage uses ([workflow-profiles.md](workflow-profiles.md))
+- The delivery cycle end to end: stages, realizations, hooks, merge, adapters ([delivery-cycle.md](delivery-cycle.md))
 
 ## Out of Scope
 
@@ -26,11 +30,17 @@ This framework does not cover:
 
 ## Directory Contents
 
-**[github-automation.md](github-automation.md)** - GitHub Actions and workflow automation strategies
+**[delivery-cycle.md](delivery-cycle.md)** - the consolidated map of the delivery cycle: stages, realizations, profiles, Cycle Hooks, the `merge` stage, host adapters and the unattended flow, with links out to each owner
+
+**[automation-policy.md](automation-policy.md)** - `tech/automation.md` schema: the `## Eligibility` declaration that selects which cards may run unattended, and the `## Workflows` mapping that routes a tagged card to the workflow that runs on it
+
+**[workflow-profiles.md](workflow-profiles.md)** - named JSON profiles declaring the engine, model, effort and context each delivery-cycle stage uses; the resolution cascade, the `context` validation against the cycle's transition table, model classes, and the example `cheap-green` profile
+
+**[github-automation.md](github-automation.md)** - GitHub Actions and workflow automation strategies, including the reference tag-driven dispatch trigger adapter
+
+**[azure-devops-automation.md](azure-devops-automation.md)** - Azure DevOps board rules, branch policies, and service hooks
 
 **[filesystem-automation.md](filesystem-automation.md)** - Local script automation and filesystem-based workflows
-
-**[azure-devops-automation.md](azure-devops-automation.md)** - Azure DevOps board rules and pipeline automation
 
 ## Introduction to Collaboration Automation
 
@@ -47,6 +57,14 @@ This section covers automation approaches for project management workflows, deve
   - Pull request and code review automation
   - Branch workflow automation
 
+### Azure DevOps Automation
+
+- **[azure-devops-automation.md](azure-devops-automation.md)** - Board rules and policy automation
+  - Board rules for state synchronization
+  - Branch policies (reviewers, work-item linking, build validation)
+  - Service hooks for event notifications
+  - Minimal pipeline example (quality gates linked, not duplicated)
+
 ### Filesystem Automation
 
 - **[filesystem-automation.md](filesystem-automation.md)** - Local script automation
@@ -54,14 +72,6 @@ This section covers automation approaches for project management workflows, deve
   - Directory management automation
   - Local workflow scripts and utilities
   - Integration with development tools
-
-### Azure DevOps Automation
-
-- **[azure-devops-automation.md](azure-devops-automation.md)** - Azure DevOps board and pipeline automation
-  - Board rules and work item automation
-  - Pipeline integration and status sync
-  - Cross-service automation patterns
-  - Integration with Azure DevOps Issues and Tracking
 
 ## Core Automation Areas
 

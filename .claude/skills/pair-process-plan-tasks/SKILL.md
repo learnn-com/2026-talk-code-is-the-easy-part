@@ -1,25 +1,33 @@
 ---
 name: pair-process-plan-tasks
-description: "Breaks a refined user story into implementation tasks. Task-level idempotency: detects existing tasks and creates only missing ones. Appends condensed Technical Analysis + Task Breakdown (checklist, Dependency Graph, AC Coverage table, detailed tasks) to the story body. Composes /pair-capability-write-issue to update the story issue body. Tasks are documented inline in the story — no separate task issues are created."
-version: 0.4.1
+description: "Breaks a refined user story into implementation tasks — checklist, dependency graph, AC-coverage table — added to the story body; no separate task issues are created. Composes /pair-capability-write-issue."
+version: 0.6.0
 author: Foomakers
 ---
 
 # /pair-process-plan-tasks — Task Breakdown
 
-Transform a refined user story into specific, actionable implementation tasks. Task-level idempotency: detects existing tasks in the story body and creates only missing ones. Appends an integrated Technical Analysis + Task Breakdown section to the story issue body. Tasks live inside the story — no separate task issues are created in the PM tool.
+Transform a refined user story into specific, actionable implementation tasks. Task-level idempotency: detects existing tasks in the story body and creates only missing ones. Adds an integrated Technical Analysis + Task Breakdown section to the story issue body (the skill composes the full updated body; write-issue overwrites it, it does not append). Tasks live inside the story — no separate task issues are created in the PM tool.
+
+## Process Profile
+
+<!-- process-step: id=plan-tasks -->
+
+Executable form of the **`plan-tasks`** step, and a composer of `define-bounded-contexts`. A **direct** invocation while a step is disabled by the project's profile warns and asks for confirmation; a **composed** one never prompts — it degrades exactly as a step that is not installed. No section ⇒ no-op. See [process-profile gate](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/process-profile-gate.md).
 
 ## Composed Skills
 
 | Skill          | Type       | Required                                                   |
 | -------------- | ---------- | ---------------------------------------------------------- |
 | `/pair-capability-write-issue` | Capability | Yes — updates the story issue body with the Task Breakdown section |
+| `/pair-capability-map-contexts` | Capability | Optional — scoped context mapping for the story's touched bounded contexts. Graceful degradation if absent. |
 
 ## Arguments
 
 | Argument | Required | Description                                                                                              |
 | -------- | -------- | -------------------------------------------------------------------------------------------------------- |
 | `$story` | No       | Story identifier (e.g., `#42`). If omitted, selects the highest-priority Refined story from the backlog. |
+| `$approval` | No    | Approval-round mode: `interactive` (default — every round runs as written) or `auto` (ask nothing: the presented technical context, context-map delta and task list are accepted and reported; Step 0's selection needs `$story`). See [approval rounds](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/approval-rounds.md). |
 
 ## Algorithm
 
@@ -31,13 +39,15 @@ Transform a refined user story into specific, actionable implementation tasks. T
    - **Priority**: P0 > P1 > P2
    - **Sprint need**: stories required for upcoming sprint
    - **Dependency chain**: stories unblocking other work
+Step 0's selection question is asked only when `$story` is absent; an autonomous caller always passes `$story`, and under `$approval: auto` without it the skill returns to the caller.
+
 4. **Act**: Present recommendation and ask developer to confirm:
 
    > Recommend task breakdown for Story `#[ID]: [Title]` (Priority: [P0/P1/P2]).
    > Reason: [business value / sprint urgency / unblocks other work].
    > Proceed?
 
-5. **Verify**: Story selected and loaded.
+5. **Verify**: A story is identified (from `$story` or developer confirmation) and its full body is available for Step 1's task-state detection.
 
 ### Step 1: Detect Existing Tasks
 
@@ -57,33 +67,46 @@ Transform a refined user story into specific, actionable implementation tasks. T
 1. **Act**: Analyze the story requirements against adoption files:
    - Read [architecture.md](../../../.pair/adoption/tech/architecture.md) for architectural patterns.
    - Read [tech-stack.md](../../../.pair/adoption/tech/tech-stack.md) for implementation choices.
-   - Identify affected system areas (services/modules) relevant to the story.
-2. **Act**: Present technical context summary to developer for validation.
-3. **Verify**: Developer approves. Context established.
+   - Map story to [bounded contexts](../../../.pair/adoption/tech/boundedcontext).
+2. **Act**: Present technical context summary to developer for validation. <!-- approval-round: kind=confirm; auto=accept -->
+3. **Verify**: Developer approves. Context established. <!-- approval-round: kind=confirm; auto=accept -->
+
+   Under `$approval: auto` items 2–3 are not asked: the summary is accepted and reported.
+
+### Step 2.5: Context Mapping (scoped)
+
+1. **Check**: Is `/pair-capability-map-contexts` installed, and is `define-bounded-contexts` enabled by the project's process profile?
+2. **Skip**: If not installed, or disabled by the project's [process profile](../../../.pair/knowledge/guidelines/technical-standards/ai-development/process-profiles.md) → skip with a note and proceed to Step 3 without context mapping. A composed disabled step never prompts.
+3. **Act**: Compose `/pair-capability-map-contexts` with `$scope` set to the bounded contexts/services touched by this story (from Step 2's mapping) — not `all` — full-catalog remapping stays `/pair-process-bootstrap`-only.
+4. **Verify**: Bounded context catalog delta (if any) approved by developer. Task breakdown always proceeds to Step 3 regardless of the context-mapping outcome. <!-- approval-round: kind=confirm; auto=accept -->
+
+   Under `$approval: auto` the delta is passed through to `/pair-capability-map-contexts` with `$approval: auto` and reported.
 
 ### Step 3: Task Identification
 
 1. **Act**: Decompose the story into tasks by mapping acceptance criteria to implementation work:
    - Map each AC to one or more tasks.
-   - Group tasks by system area (service/module) where helpful.
+   - Group tasks by bounded context.
    - Identify task types: Development, Documentation, Configuration, Research.
    - Ensure every AC is covered by at least one task.
 2. **Act**: Identify dependencies between tasks and determine execution order.
 3. **Act**: Present task list to developer:
 
    > Proposed [N] tasks for `#[ID]`:
-   > [Numbered list with task title, type, system area, estimated hours]
+   > [Numbered list with task title, type, bounded context, estimated hours]
    > AC coverage: [all ACs mapped]
-   > Approve or adjust?
+   > Approve or adjust? <!-- approval-round: kind=confirm; auto=accept -->
 
-4. **Verify**: Developer approves. Task list finalized.
+4. **Verify**: Developer approves. Task list finalized. <!-- approval-round: kind=confirm; auto=accept -->
+
+   Under `$approval: auto` items 3–4 are not asked: the task list is accepted and reported.
 
 ### Step 4: Task Definition
 
 For each task (skipping tasks that already exist in the story body):
 
-1. **Act**: Define the task following the [task-template.md](../../../.pair/knowledge/guidelines/collaboration/templates/task-template.md):
-   - Task Information (ID, priority, hours, system area)
+1. **Act**: Define the task following the [task-template.md](../../../.pair/knowledge/guidelines/collaboration/templates/task-template.md) (resolve override-first — [template resolution](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/template-resolution.md)):
+   - Task Information (ID, priority, hours, bounded context)
    - Summary and type
    - Description with implementation context
    - Acceptance criteria (deliverable, quality, integration, verification)
@@ -108,12 +131,12 @@ For each task (skipping tasks that already exist in the story body):
 
 ### Step 6: PM Tool Update
 
-1. **Act**: Compose `/pair-capability-write-issue` with `$type: story`, `$id: [story-id]` to append the Task Breakdown section to the story body. Tasks are documented inline in the story — do NOT create separate task issues.
+1. **Act**: Compose `/pair-capability-write-issue` with `$type: story`, `$id: [story-id]`, and `$content` = the story's current full body with the Task Breakdown section merged in (`/pair-capability-write-issue` overwrites the body as-is, it does not append). Tasks are always documented inline in the story body.
 2. **Verify**: Story body updated with Task Breakdown section.
 
 ### Step 7: Already-Complete Update (optional path)
 
-Reached only when Step 1 detects all tasks are present with full AC coverage.
+Reached only when Step 1 detects all tasks are present with full AC coverage. Under `$approval: auto` a complete breakdown is confirmed and the skill exits — the update path is interactive-only.
 
 1. **Act**: Ask the developer what to update:
 
@@ -136,28 +159,29 @@ TASK BREAKDOWN COMPLETE:
 ├── Types:      [Development: N, Documentation: N, Configuration: N]
 ├── AC Coverage:[K/K ACs covered]
 ├── PM Tool:    [Story updated with Task Breakdown section]
-└── Next:       /pair-process-implement to start task execution
+└── Next:       /implement to start task execution
 ```
+
+The `Next:` line names only steps enabled by the project's [process profile](../../../.pair/knowledge/guidelines/technical-standards/ai-development/process-profiles.md): a disabled one is dropped, and when none is left the line names no skill.
 
 ## HALT Conditions
 
 - **No Refined stories in backlog** (Step 0) — nothing to break down.
-- **Story not found or not Refined** (Step 0) — must be refined first (suggest `/pair-process-refine-story`).
+- **Story not found or not Refined** (Step 0) — must be refined first (suggest `/pair-process-refine-story`). Exception: a Draft card driven by the autonomous prepare phase under `$approval: auto` (US-523; refinement holds Ready back under `prepare: hold-never|hold-when`) is planned as-is, never a HALT.
 - **PM tool not accessible** — cannot read or update stories.
 - **Developer rejects task list** (Step 3) — must resolve before proceeding.
 - **AC coverage gap** (Step 5) — every AC must be covered by at least one task.
 
 ## Graceful Degradation
 
-- If `/pair-capability-write-issue` is not installed, warn and provide the formatted Task Breakdown section for manual PM tool update.
-- If the PM tool is not accessible, produce the task breakdown content and ask the developer to update manually.
-- If adoption files (architecture, tech-stack) are not found, skip technical context alignment and warn.
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (optional skill `/pair-capability-write-issue` not installed / PM tool not accessible → produce the task breakdown content, ask developer to update manually) for the standard scenarios. Additional cases:
+
+- **`/pair-capability-map-contexts` not installed, or disabled by the project's [process profile](../../../.pair/knowledge/guidelines/technical-standards/ai-development/process-profiles.md)** (Step 2.5): the task breakdown is still produced; context mapping is skipped with a note, never a HALT.
+- If adoption files (architecture, tech-stack, bounded contexts) are not found, skip technical context alignment and warn.
 
 ## Notes
 
 - This skill **modifies PM tool state** — it updates the story body with the Task Breakdown section. No separate task issues are created.
-- Task-level idempotency: re-invoking on a story with partial tasks appends only missing ones to the story body.
-- The integrated Technical Analysis + Task Breakdown format positions these as the last content sections in the story body (functional sections first, technical sections last).
-- Condensed TA retains: strategy summary, data flow/pipeline order, key risks. Removes verbose implementation detail that belongs in individual tasks.
-- Task template reference: [task-template.md](../../../.pair/knowledge/guidelines/collaboration/templates/task-template.md).
+- **Idempotent (task-level)** — see [idempotency convention](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/idempotency.md). This skill's check: re-invoking on a story with partial tasks adds only the missing ones (the caller composes the full updated body; write-issue overwrites it).
+- Condensed TA removes verbose implementation detail that belongs in individual tasks (retained items: see Step 5).
 - Story template reference: [user-story-template.md](../../../.pair/knowledge/guidelines/collaboration/templates/user-story-template.md).

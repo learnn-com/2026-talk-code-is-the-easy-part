@@ -1,11 +1,17 @@
 {
-  "name": "pmday2026",
+  "name": "2026-talk-code-is-the-easy-part",
   "private": true,
   "packageManager": "pnpm@12.6.0",
   "scripts": {
-    "pair": "pair-cli"
+    "pair": "pair-cli",
+    "pair:loop": "pair-cli run --root IN-01 --autonomous --preset full",
+    "ts:check": "pnpm --filter webapp ts:check",
+    "test": "pnpm --filter webapp test",
+    "lint": "pnpm --filter webapp lint",
+    "prettier:fix": "pnpm --filter webapp prettier:fix",
+    "quality-gate": "pnpm ts:check && pnpm test && pnpm lint && pnpm prettier:fix"
   },
   "devDependencies": {
-    "@foomakers/pair-cli": "0.4.3"
+    "@foomakers/pair-cli": "0.5.2"
   }
 }

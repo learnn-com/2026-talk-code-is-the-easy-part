@@ -203,6 +203,36 @@ Status changes are reflected by moving files between directories:
 - **under-review/**: Completed work awaiting review/validation
 - **completed/**: Finished and accepted items
 
+### Item Visibility: Membership and Assignee
+
+**Board membership is implicit here — the file's location _is_ its membership.** Writing the file under `03-user-stories/[status]/` puts the item in the tracked view; there is **no separate add-to-board step**. Do not invent one: unlike GitHub Projects, where an issue and a project item are distinct objects requiring an explicit `addProjectV2ItemById`, a file that exists in the backlog tree is already a member of it. Consequently a status write can never fail for "not a member yet" — the failure mode is a file in the _wrong_ directory, not a missing one.
+
+**The assignee is not implicit** and is still required — the backlog is read filtered by assignee (Assignment rule in [way-of-working.md](../../../../adoption/tech/way-of-working.md)). There is no assignee field in a filesystem board, so it lives in the item file's header as an **`Assignee`** line, written as part of the create, never as a follow-up step:
+
+```markdown
+**Assignee**: [name or handle of the person the work is done for]
+```
+
+**Where the line goes**: the item templates carry **no `Assignee` field**, so copying a template does not leave a slot for it. Add it to the item's context block — for a user story, in **`## Epic Context`** immediately after `**Priority**`; for a task, in the same header block that carries the parent story; for an **epic** or an **initiative**, in its own header/context block, the one carrying `**Priority**`. Writing it anywhere the grep below finds it is correct; leaving it out because the template lacked a field is not.
+
+**Why the slot is not in the shared templates** (a deliberate choice, not an oversight): on every other adapter the assignee is a **native tracker field** — GitHub's `assignees`, Azure's `--assigned-to`, Linear's `assigneeId` — so a template slot would be dead weight there, and a second source of truth competing with the field the board actually filters on. The templates therefore stay tool-neutral and this adapter owns the convention, which is why the placement rule is stated here and is looser than a template field would be. Recorded with the rest of the contract rationale in this repository's `.pair/adoption/decision-log/2026-07-31-pm-adapter-visibility-contract.md`.
+
+Grep is the filtered view: `grep -rl 'Assignee.*<name>' .pair/adoption/product/backlog/` — which is exactly why an item with the line missing is invisible. **If the assignee cannot be resolved**: **report it** — never drop it silently by writing the file with the line omitted or left as a placeholder.
+
+## Unattended Loop (pair run)
+
+The delivery cycle reads and writes filesystem cards through the shipped `scripts/host/filesystem.mjs` adapter (PM side only; declare `code-host` for the PRs):
+
+- **Declaration**: `- \`pm-tool\`: \`filesystem\`` (or the "Filesystem is adopted for project management" line), plus `## Git Workflow` → `- \`code-host\`: \`github\``.
+- **Card id**: the file name's leading id — `01-01-001` for `01-01-001-login.md`, `IN-01` for `IN-01-demo.md`. An id with `/`, `..`, whitespace or an absolute path is refused (`invalid-input`) before any file is read; an id matching two files is refused, never guessed.
+- **State**: the status folder (`not-started | in-progress | under-review | completed`) and the first `**Status**:` line, written together and read back.
+- **Labels**: one `**Labels**: a, b` line.
+- **Comments**: marker-keyed blocks after a `<!-- pair-comments -->` line at the end of the file (idempotent upsert).
+- **Card hash**: the file minus the Status line, the Labels line and the comments — a state, label or comment write never changes it.
+- **Where writes land**: inside a story worktree every write is committed on its branch (`[#<id>] chore: card …`); anywhere else (an attended run, the default branch after merge) the write stays in the working tree with one `fs: warning` line — commit it yourself.
+- **Close + cascade**: `closeAndCascade` moves the card to `completed/` with `**Status**: Done`, then walks up the id (`01-01-001` → `01-01` → `01`) closing a parent whose children are all done. Inside a story worktree only the card closes: the cascade runs at merge, on the default branch, so parallel cards under one epic never race.
+- **`--assignee @me`**: not supported (no logged-in user) — `cycle-state.mjs whoami` HALTs `not-implemented` naming `resolveUser`.
+
 ## Working with Initiatives
 
 ### Creating Initiatives
@@ -232,6 +262,7 @@ Fill out all sections of the initiative template:
 - **Business Objective**: Clear statement of business goals
 - **Success Metrics**: Measurable outcomes and KPIs
 - **Priority**: P0 (Must-Have) | P1 (Should-Have) | P2 (Could-Have)
+- **Assignee**: the person the work is done for — required, see [Item Visibility](#item-visibility-membership-and-assignee)
 - **Estimated Timeline**: High-level timeframe
 - **Dependencies**: External dependencies and blockers
 - **Epic References**: Links to related epics (added as epics are created)
@@ -333,6 +364,7 @@ Fill out all required sections:
 - **Parent Epic**: Link to parent epic file
 - **Acceptance Criteria**: Clear, testable conditions
 - **Priority and Sizing**: Business priority and development estimate
+- **Assignee**: the person the work is done for — required, see [Item Visibility](#item-visibility-membership-and-assignee)
 
 ### Refining User Stories
 
@@ -543,6 +575,26 @@ Add review tasks to the story file:
 - [ ] **Review-002:** Improve error handling in validation middleware
 - [ ] **Review-003:** Update API documentation with new endpoint
 ```
+
+## Comments on an Item (Activity Log)
+
+Filesystem has no comment API — the item **is** a markdown file — so a comment is an **append** to one dedicated section of that file: `## Activity Log`, at the end of the item file, created on first use.
+
+```markdown
+## Activity Log
+
+- **2026-07-29** — PR: https://github.com/acme/platform/pull/412
+```
+
+This is the mechanism `/pair-capability-write-issue $mode: comment` resolves for `filesystem` (it is how the PR back-link of a split setup reaches the item, since the code host is always a separate tool here — filesystem hosts no code). The rules that make it equivalent to a comment elsewhere:
+
+1. **Append only, one section.** Add a bullet under `## Activity Log` and change nothing else — the statement, acceptance criteria, Definition of Done, task checkboxes, Implementation Progress and any front-matter stay byte-identical.
+2. **Never a status write.** Board state on filesystem is the item's **directory** (see Status Management via File Location) — an activity entry never moves or renames the file.
+3. **Not idempotent by itself.** The bullet carries no id, so re-running appends a second one: a caller that can re-run (e.g. `/pair-capability-publish-pr`'s back-link) greps the section for the value first and skips when present.
+4. **Distinct from `Implementation Progress`**, which is the author's own dated work log; `## Activity Log` holds cross-links and annotations written _by tooling_.
+5. **Reading it is a grep of this section**, not an API call: a caller checking "does a comment with this URL already exist?" (e.g. `/pair-capability-publish-pr`'s back-link check) greps `## Activity Log` in the item file.
+6. **It survives later body renders through the caller's contract.** `$mode: write` is a **full-body overwrite**, so a skill that re-renders an item (`/pair-process-plan-tasks`, a re-refinement) must pass the already-merged full body — which includes the existing `## Activity Log`. Read → merge → write; a render that drops the section is a caller bug, not a property of this mechanism.
+7. **The item `$id` is the file stem** (`01-01-001`), never a path: the file moves between the status directories as its state changes, so a caller resolves the item by **glob across them** (`**/01-01-001*.md`). That stem is also what the PR's `Refs:` line carries (see the [cross-linking convention](../../technical-standards/ai-development/skill-conventions/way-of-working-pm-resolution.md)).
 
 ## Best Practices
 

@@ -14,18 +14,19 @@ Run `/pair-next` at the start of every session. It reads project adoption files 
 
 | Type | Count | Purpose |
 |------|-------|---------|
-| **Process** | 9 | Lifecycle phases — orchestrate capability skills |
-| **Capability** | 22 | Atomic units — perform a single focused operation |
-| **Navigator** | 1 | Recommend the next most relevant skill |
+| **Process** | 10 | Lifecycle phases — orchestrate capability skills |
+| **Capability** | 32 | Atomic units — perform a single focused operation |
+| **Workflow** | 7 | Delivery stages — dispatched by the batch engine, one mutation boundary each |
 
-Process skills compose capability skills. Capability skills are independently invocable. Total: 32 (9 process + 22 capability + 1 navigator).
+Process skills compose capability skills. Capability skills are independently invocable. Total: 51 (10 process + 32 capability + 7 workflow + 2 navigator).
 
 ## Full Catalog
 
-### Process Skills (9)
+### Process Skills (10)
 
 | Skill | How-To | Phase | Description |
 |-------|--------|-------|-------------|
+| `/pair-process-brainstorm` | — | Discovery | Structured discovery (interview → domain → tree) into a Draft backlog tree |
 | `/pair-process-specify-prd` | 01 | Induction | Create/update PRD |
 | `/pair-process-bootstrap` | 02 | Induction | Full project setup |
 | `/pair-process-plan-initiatives` | 03 | Strategic | Create and prioritize initiatives |
@@ -36,9 +37,22 @@ Process skills compose capability skills. Capability skills are independently in
 | `/pair-process-implement` | 10 | Execution | Implement tasks with TDD |
 | `/pair-process-review` | 11 | Review | Code review with merge flow |
 
-### Capability Skills (19)
+> `/pair-process-brainstorm` carries no numbered how-to guide (`—` above): it is a discovery entry point that runs *before* guide 01, and its `SKILL.md` is the canonical reference for its three phases.
+>
+> How-to guides 04 and 05 (subdomain/bounded-context definition) were removed — domain modeling is referenced inline by each real caller's own how-to (02, 03, 06, 09; 08 planned — #242). See [Domain Modeling Skills](#domain-modeling-skills-2) below and [Migration Notes](#migration-notes).
 
-#### Assessment Skills (9)
+### Capability Skills (32)
+
+#### Domain Modeling Skills (2)
+
+| Skill | Scope |
+|-------|-------|
+| `/pair-capability-map-subdomains` | DDD subdomain placement (core/supporting/generic + Volatility), scoped to caller's touched items |
+| `/pair-capability-map-contexts` | DDD bounded-context placement + per-relationship strength/distance/volatility assessment, scoped to caller's touched items |
+
+Reclassified from process to capability (D24) — see [Callers Matrix](#callers-matrix-scoped-capabilities) and [Migration Notes](#migration-notes).
+
+#### Assessment Skills (11)
 
 | Skill | Scope |
 |-------|-------|
@@ -50,18 +64,37 @@ Process skills compose capability skills. Capability skills are independently in
 | `/pair-capability-assess-infrastructure` | Infrastructure strategy evaluation |
 | `/pair-capability-assess-observability` | Observability strategy evaluation |
 | `/pair-capability-assess-ai` | AI development tools evaluation |
-| `/pair-capability-assess-security` | Security posture + adoption alignment (guidelines, package `.pair.security.md`) |
+| `/pair-capability-assess-security` | Security posture — review verdict (`$mode: review`, composed by `/pair-process-review`) + one-shot OWASP Top 10 audit (`$mode: audit`). Unlike the 8 above, not purely output-only — writes its own audit report (D14 exception); never scans for secrets, that's the deterministic CI layer `/pair-capability-setup-gates` provisions (D24) |
+| `/pair-capability-assess-cost` | Cost exposure — chromatic class (`cost:green\|yellow\|orange\|red`) from the diff/story against the [cost-signal catalog](guidelines/quality-assurance/cost-assessment.md) (general + AWS-first, other providers via adoption links). `$mode: classify` is output-only: feeds `/pair-capability-classify`'s cost dimension, writes nothing, blocks nothing. `$mode: report` monitors a period's merged PRs (refinement-time predicted class vs. real signals, drift flagged, deploy-match when telemetry exists) and writes one period-keyed panel under `.pair/working/reports/cost/` per the [report-panel convention](guidelines/collaboration/working-area.md) |
+| `/pair-capability-assess-coupling` | Coupling balance — three-dimensional model (integration strength × socio-technical distance × volatility + balance rule) from the [coupling-balance guideline](guidelines/architecture/design-patterns/coupling-balance.md). `$scope: diff` feeds the review Architecture verdict (never blocks); `$scope: full` audits the codebase, flags only unbalanced+volatile integrations, writes a report and hands findings to `/pair-capability-write-issue` for tech-debt. Reads real integration points, never structure alone |
 
-#### Verification Skills (4)
+#### Classification Skills (1)
+
+Applies the [quality model](guidelines/quality-assurance/quality-model.md) (owns no criteria) to produce the objective classification matrix consumed downstream.
+
+| Skill | Scope |
+|-------|-------|
+| `/pair-capability-classify` | Risk/cost matrix from the quality model (KB default + `tech/risk-matrix.md` delta) — story context in refinement, diff in review (confirm-or-raise, never lower); adoption-gated chromatic tag projection. Composed by `/pair-process-refine-story` and `/pair-process-review` |
+
+#### Analysis Skills (3)
+
+Analyze + **report only** — never block, propose no adoption decision (verb: `analyze-*`, distinct from `assess-*`).
+
+| Skill | Scope |
+|-------|-------|
+| `/pair-capability-analyze-debt` | Technical debt detection + prioritization (report-only) |
+| `/pair-capability-analyze-code-quality` | Code quality metrics — complexity, size, coverage, maintainability (report-only) |
+| `/pair-capability-analyze-delivery-metrics` | Delivery/AI metrics for a period — bug resolution time, PR lead time, process adoption — computed from the adopted PM tool/code host against the [delivery-metrics guideline](guidelines/quality-assurance/delivery-metrics.md) and written as one period-keyed panel under `.pair/working/reports/metrics/` per the [report-panel convention](guidelines/collaboration/working-area.md). Report-only, but (like `/pair-capability-assess-security`'s audit) it writes its own panel — the D14 operational-artifact exception; never blocks, never touches adoption |
+
+#### Verification Skills (3)
 
 | Skill | Scope |
 |-------|-------|
 | `/pair-capability-verify-quality` | Quality gate checking |
 | `/pair-capability-verify-done` | Definition of Done checking |
 | `/pair-capability-verify-adoption` | Adoption compliance checking |
-| `/pair-capability-assess-debt` | Technical debt detection + prioritization |
 
-#### Operational Skills (5)
+#### Operational Skills (7)
 
 | Skill | Scope |
 |-------|-------|
@@ -70,6 +103,8 @@ Process skills compose capability skills. Capability skills are independently in
 | `/pair-capability-estimate` | Story estimation |
 | `/pair-capability-setup-gates` | CI/CD quality gate configuration |
 | `/pair-capability-setup-pm` | PM tool configuration |
+| `/pair-capability-setup-harness` | Agent harness configuration (pi, opencode, Claude Code) — resolve, verify fitness, provision, idempotent |
+| `/pair-capability-manage-flags` | Feature flag lifecycle management |
 
 #### Testing Skills (2)
 
@@ -78,22 +113,82 @@ Process skills compose capability skills. Capability skills are independently in
 | `/pair-capability-design-manual-tests` | Manual test suite generation from project analysis |
 | `/pair-capability-execute-manual-tests` | Manual test suite execution + report generation |
 
-#### Code Quality Skills (2)
+#### State and Handoff Skills (1)
 
 | Skill | Scope |
 |-------|-------|
-| `/pair-capability-assess-code-quality` | Code quality metrics assessment |
-| `/pair-capability-manage-flags` | Feature flag lifecycle management |
+| `/pair-capability-checkpoint` | Write/resume story progress checkpoint (work survives context resets) |
+
+#### Delivery Skills (1)
+
+| Skill | Scope |
+|-------|-------|
+| `/pair-capability-publish-pr` | Publish a story branch as a PR: gate, PR from template (conditional sections), tag copy, ready-for-review, board state |
+
+#### Discovery Skills (1)
+
+| Skill | Scope |
+|-------|-------|
+| `/pair-capability-grill` | Reusable interview engine (interview / sync modes), write-free |
+
+### Workflow Skills (7)
+
+Delivery-stage skills the batch engine (`pair-implement-batch`) or the in-session coordinator (`/pair-workflow-cycle`) dispatches to — the four judgment stages of a delivery cycle (US-479, ADR-024 amendment b), the batch-level template contract and the coordinator that drives them. A fresh card starts at implementation — test-first, no up-front contract — and preparation + validation run for each round of review findings (US-506, ADR-024 amendment 2026-09-23). Each resolves the durable cycle state first (`cycle-state.mjs`), owns one mutation boundary and publishes one handoff under `.pair/working/runs/<run>/<story>/`; probe, seal, hash, state and comment publication run as scripts inside them, never as their own dispatch.
+
+| Skill | Stage | Description |
+|-------|-------|-------------|
+| `/pair-workflow-red-spec` | 1 preparation | Inventory (AC/finding → producer → classes/interactions), grouping of a round, executable acceptance contract: red witnesses + pass controls, stable row ids, test-only |
+| `/pair-workflow-red-verify` | 2 validation + seal | Reproduce every row and artifact, re-derive the inventory, emit all gaps in one rejection; on approval run `red-snapshot.mjs seal` in the same execution |
+| `/pair-workflow-implement-phase` | 3 implementation (initial) | Build the story test-first above the sealed contract, gate verified, checkpoint written, one PR published through publish-pr |
+| `/pair-workflow-green-fix` | 3 implementation (remediation) | Make the sealed contract pass inside fixScope; GREEN above the seal; PR updated; one retry on the same seal |
+| `/pair-workflow-review-phase` | 4 final verification | `red-snapshot.mjs verify-chain`, evidence re-run, tier passes, stable finding ids and transitions, readiness bound to the remote head, marker-keyed idempotent publication |
+| `/pair-workflow-contract-phase` | 0 | Ensure the template-derived machine contract (cache-by-hash via ensure-contract.mjs) |
+| `/pair-workflow-cycle` | coordinator | Turns the crank from inside a session: `resolve` → dispatch one stage to a subagent → `resolve`, on any harness with a subagent primitive (probed, never inferred). Owns no cycle rule and never merges |
+
+## Macro-Phase Modes
+
+`/pair-next --mode analysis|implementation|review` runs one branch of the process end to end for a user who does not want to know the granular steps. A mode is a **facade over `/pair-next`'s cascade, not a skill**: the catalog above is unchanged, the granular skills behave exactly as when invoked directly, and the mode ↔ step mapping — rows, steps, exit conditions — lives in the [macro-phase modes guideline](guidelines/technical-standards/ai-development/macro-phase-modes.md) and nowhere else.
+
+**Authoring checklist item (facade drift)**: a new process step, or a new `/pair-next` cascade row, is placed in the mode table (or declared under "Outside the modes") in the same change — `skills:conformance` fails when a catalogue step or a row 1–11 belongs to no mode.
 
 ## Directory Structure
 
-In this repository, skills live under `.skills/` (each skill is a folder with `SKILL.md`):
-
 ```text
 .skills/
-├── next/
-├── process-*/
-└── capability-*/
+├── process/              # Lifecycle phase skills
+│   ├── brainstorm/       # 3-phase structured discovery
+│   ├── specify-prd/
+│   ├── bootstrap/
+│   ├── plan-initiatives/
+│   ├── plan-epics/
+│   ├── plan-stories/
+│   ├── refine-story/
+│   ├── plan-tasks/
+│   ├── implement/
+│   └── review/
+├── capability/           # Atomic operation skills
+│   ├── map-subdomains/   # scoped DDD subdomain placement
+│   ├── map-contexts/     # scoped DDD bounded-context placement
+│   ├── classify/         # quality-model classification matrix + tag projection
+│   ├── assess-*/         # 8 assessment skills
+│   ├── verify-*/         # 3 verification skills
+│   ├── design-manual-tests/
+│   ├── execute-manual-tests/
+│   ├── record-decision/
+│   ├── write-issue/
+│   ├── estimate/
+│   ├── setup-gates/
+│   ├── setup-pm/
+│   ├── setup-harness/
+│   ├── analyze-debt/          # report-only
+│   ├── analyze-code-quality/  # report-only
+│   ├── analyze-delivery-metrics/ # report-only, writes one period panel
+│   ├── checkpoint/
+│   ├── publish-pr/
+│   ├── manage-flags/
+│   └── grill/
+└── next/                 # Navigator skill
+    └── SKILL.md
 ```
 
 Each skill directory contains a `SKILL.md` file with YAML frontmatter (`name` + `description`) and a structured algorithm using the **check → skip → act → verify** pattern.
@@ -106,11 +201,69 @@ Process skills compose capability skills with optional graceful degradation:
 /pair-process-implement
 ├── /pair-capability-verify-quality       (required)
 ├── /pair-capability-record-decision      (required)
-├── /pair-capability-assess-stack         (optional — warns if missing)
-└── /pair-capability-verify-adoption      (optional — warns if missing)
+├── /pair-capability-assess-stack          (optional — warns if missing)
+└── /pair-capability-verify-adoption       (optional — warns if missing)
 ```
 
 Optional skills degrade gracefully: if not installed, the process skill warns and continues without blocking.
+
+## Authoring Standard
+
+Every skill is held to an effectiveness standard, not just structural conformance. The goal is repeatable execution — the executor follows the same steps each time, whatever the run produces. Nine principles, each with its check (full standard, with illustrative examples, and review checklist: website contributing guide "Writing Skills"; recorded as ADR-010):
+
+1. **Description = trigger** — the description names the skill's purpose and enumerates its distinct trigger branches; two clauses covering the same branch in different words still collapse into one branch, so merge them; mostly-composed capabilities carry a lean reach clause (e.g. "Composed by `/pair-process-refine-story`; invoke directly when …") instead of a trigger list; algorithm detail stays in the body. *Check: every clause maps to a distinct branch; nothing that only matters after loading.*
+2. **Information hierarchy** — steps first, in-file reference second, branch-specific reference pushed to a sibling file pulled in through a context pointer (its phrasing, not its target, is what makes it fire reliably); keep inline what every run passes through, move out what only a subset of runs reach. *Check: "does every run need this before acting?" decides the rung.*
+3. **Completion criteria** — every Verify beat leaves no room for a judgment call (from observable state alone, the step either happened or it didn't) and is exhaustive where thoroughness matters; a criterion loose enough to pass by default invites premature completion. *Check: two executors couldn't disagree on whether it's satisfied.*
+4. **Pruning** — one home per meaning (shared conventions live once; skills keep deltas); every line passes a relevance test; every sentence passes a no-op check (strip it out — would the model act differently without it? cut failing sentences outright); prune on every edit before sediment settles. *Check: the meaning you're adding doesn't already live elsewhere.*
+5. **Leading words** — compact pretrained concepts repeated as tokens (*idempotent*, *scope*, *gate*, *halt*) anchor behavior in the body and invocation in the description at minimal token cost. *Check: prose restating one idea across sentences collapses into one strong word.*
+6. **Positive phrasing** — state what the executor should do; spelling out the banned behavior instead just pulls it into view. A prohibition belongs only where no positive phrasing closes the same gap, and even then the positive instruction sits right beside it. *Check: rewrite each "never" as a positive instruction; keep the negation only where that rewrite fails, with the positive alternative stated next to it.*
+7. **Co-location** — a concept's definition, its rules, and its exceptions grouped under the one heading that governs the step, not scattered wherever they were written. *Check: no load-bearing rule stranded in a distant Notes section.*
+8. **Constraints** — the spec caps `name` at 64 and `description` at 1024 characters separately; Pair adopts a stricter combined ≤1024 bound for both together. Dataset skills carry only agentskills.io-spec top-level frontmatter (`name` + `description` required; optional `license`, `compatibility`, `metadata`, `allowed-tools`) plus `version`/`author` as a tolerated Pair extension at top level (the spec only shows those under `metadata:`) for provenance tracking — no assistant-specific fields. Dataset and installed mirror change in the same commit. *Check: char count against the combined bound, frontmatter field diff against spec + tolerated extension, commit touches both copies.*
+9. **Evaluation** — should-trigger / should-not-trigger prompt sets per skill family, run in fresh sessions; description rewrites record before/after results, and a regression reverts the rewrite. *Check: evidence recorded per rewritten description.*
+
+## Callers Matrix (Scoped Capabilities)
+
+`/pair-capability-map-subdomains` and `/pair-capability-map-contexts` are capabilities, not process steps: every caller invokes them with `$scope` set to the items it just touched. `/pair-process-bootstrap` is the only caller allowed a full-catalog `$scope: all` run.
+
+| Capability | Caller | Phase | `$scope` set to |
+|------------|--------|-------|-----------------|
+| `/pair-capability-map-subdomains` | `/pair-process-refine-story` (planned — #242) | Functional/domain analysis | The story's capability area |
+| `/pair-capability-map-subdomains` | `/pair-process-plan-initiatives` | Initiative creation | The initiative's capability area |
+| `/pair-capability-map-subdomains` | `/pair-process-plan-epics` | Epic breakdown | The epic's capability area |
+| `/pair-capability-map-subdomains` | `/pair-process-brainstorm` | Broad/functional discovery (phase 2) | The capability areas discovered |
+| `/pair-capability-map-subdomains` | `/pair-process-bootstrap` | Project setup | `all` (full catalog — bootstrap only) |
+| `/pair-capability-map-contexts` | `/pair-process-refine-story` (planned — #242) | Technical analysis | The story's touched contexts/services |
+| `/pair-capability-map-contexts` | `/pair-process-plan-tasks` | Task breakdown | The task's touched contexts/services |
+| `/pair-capability-map-contexts` | `/pair-process-brainstorm` | Punctual/technical discovery (phase 2) | The contexts discovered |
+| `/pair-capability-map-contexts` | `/pair-process-bootstrap` | Project setup | `all` (full catalog — bootstrap only) |
+
+Every row above except the two `(planned — #242)` entries is a real composition, verified against each caller's `SKILL.md` — not an aspirational claim. No caller performs a full re-mapping outside `/pair-process-bootstrap`. When no `subdomain/`/`boundedcontext/` artifacts exist yet, both capabilities fall back to "system areas" (services/modules) instead of requiring the DDD prerequisites — no HALT, no error.
+
+`/pair-capability-classify` is likewise a capability invoked by callers, keyed by `$context` (not `$scope`):
+
+| Capability | Caller | Phase | `$context` |
+|------------|--------|-------|------------|
+| `/pair-capability-classify` | `/pair-process-refine-story` | Shift-left classification (Step 3b) | `refinement` (story context) |
+| `/pair-capability-classify` | `/pair-process-review` | PR validation (Step 1.5) | `review` (diff; confirm-or-raise, never lower) |
+
+Both rows are real compositions verified against each caller's `SKILL.md`. `/pair-capability-classify` owns no criteria — it applies the [quality model](guidelines/quality-assurance/quality-model.md); the review pass is a floor over the refinement tier (D17).
+
+## Migration Notes
+
+**map-subdomains, map-contexts: process → capability (D24, #246)**
+
+- Old path: `.skills/process/map-subdomains/`, `.skills/process/map-contexts/` — new path: `.skills/capability/map-subdomains/`, `.skills/capability/map-contexts/`.
+- Installed command names change accordingly: `/pair-process-map-subdomains` → `/pair-capability-map-subdomains`; `/pair-process-map-contexts` → `/pair-capability-map-contexts`. Unprefixed dataset command names (`map-subdomains`, `map-contexts`) are unchanged.
+- Invocation contract changed: `$scope` is now **required** and means "items/areas the caller touched" (not `all`/`single`). Full-catalog `$scope: all` is now bootstrap-only.
+- New behavior: graceful "system areas" fallback when no DDD artifacts exist; `Volatility` field on subdomains; per-relationship strength/distance/volatility assessment with an approval gate on unbalanced+volatile relationships (see `subdomain-template.md`, `bounded-context-template.md`).
+- No standalone process step or how-to remains for domain mapping — how-to guides 04 (define-subdomains) and 05 (define-bounded-contexts) were removed; each caller's own how-to (02, 03, 06, 08, 09) now references the capability inline at the point it's invoked, scoped per the [Callers Matrix](#callers-matrix-scoped-capabilities) above. The capability's own `SKILL.md` ([map-subdomains](../../.claude/skills/pair-capability-map-subdomains/SKILL.md), [map-contexts](../../.claude/skills/pair-capability-map-contexts/SKILL.md)) is the canonical reference for its algorithm, fallback behavior, and templates.
+
+**assess-debt, assess-code-quality: assess → analyze (skill naming taxonomy, #313/T8)**
+
+- Rationale: `assess-*` conflated two operations. The corpus now uses three distinct verbs — **`verify-*`** (conformance pass/fail), **`assess-*`** (evaluate options + PROPOSE an adoption choice — the 8 decision skills), **`analyze-*`** (analyze + REPORT only, never blocks, proposes no adoption decision). The two report skills were misfiled under `assess-*` and are renamed to the `analyze-*` verb. Recorded as ADL `2026-07-13-skill-naming-verb-taxonomy.md` in the project decision log.
+- Old path: `.skills/capability/assess-debt/`, `.skills/capability/assess-code-quality/` — new path: `.skills/capability/analyze-debt/`, `.skills/capability/analyze-code-quality/`.
+- Installed command names change accordingly: `/pair-capability-assess-debt` → `/pair-capability-analyze-debt`; `/pair-capability-assess-code-quality` → `/pair-capability-analyze-code-quality`. Unprefixed dataset command names change too: `assess-debt` → `analyze-debt`, `assess-code-quality` → `analyze-code-quality`.
+- No behavior change: both remain output-only report producers (per ADR-009); only the verb/name changed. Skill count stays 35.
 
 ## How Skills Relate to How-To Guides
 
@@ -128,13 +281,15 @@ Skills read from and write to adoption files in `.pair/adoption/`:
 |------|--------------|------------------|-------------------|
 | Tech stack | `tech/tech-stack.md` | `/pair-capability-verify-adoption`, `/pair-process-review` | `/pair-capability-assess-stack`, `/pair-process-bootstrap` |
 | Architecture | `tech/architecture.md` | `/pair-capability-verify-adoption`, `/pair-process-review` | `/pair-capability-assess-architecture` |
-| Security | `tech/security.md` + package `.pair.security.md` | `/pair-capability-verify-adoption`, `/pair-process-review` | `/pair-capability-assess-security` |
 | Way of working | `tech/way-of-working.md` | `/pair-process-implement`, `/pair-process-review`, `/pair-capability-estimate` | `/pair-capability-assess-methodology`, `/pair-capability-setup-pm` |
-| Decisions (ADR) | `tech/adr/*.md` | `/pair-capability-verify-adoption`, `/pair-process-review` | `/pair-capability-record-decision` |
-| Decisions (ADL) | `decision-log/*.md` | `/pair-capability-verify-adoption` | `/pair-capability-record-decision` |
+| Decisions (ADR) | `tech/adr/*.md` | `/pair-capability-verify-adoption`, `/pair-process-review`, `/pair-process-plan-stories`, `/pair-process-refine-story`, `/pair-process-brainstorm` (adoption-informed generation) | `/pair-capability-record-decision` |
+| Decisions (ADL) | `decision-log/*.md` | `/pair-capability-verify-adoption`, `/pair-process-plan-stories`, `/pair-process-refine-story`, `/pair-process-brainstorm` (adoption-informed generation) | `/pair-capability-record-decision` |
+| Domain (context map / subdomain contexts) | `product/context-map.md`, `product/subdomain/*.context.md` | `/pair-process-brainstorm`, `/pair-process-refine-story`, `/pair-process-plan-initiatives`, `/pair-process-plan-epics`, `/pair-process-plan-stories`, `/pair-process-plan-tasks` | `/pair-capability-record-decision` (decision-backed sections), `/pair-process-brainstorm`, `/pair-process-refine-story` (inline glossary/entity/rule maintenance) |
+| Package-local adoption (opt-in override) | central router `## Package-Local Adoption` + `<pkg>/.pair/<area>.md` | `/pair-process-review`, `/assess-*` (diff-scoped), `/pair-process-refine-story` (story-scoped) — see [scoped context resolution](guidelines/technical-standards/ai-development/skill-conventions/scoped-context-resolution.md) and [package-local adoption](guidelines/technical-standards/ai-development/skill-conventions/package-local-adoption.md) | none — skills only PROPOSE activation; a human approves |
+| Classification delta | `tech/risk-matrix.md` | `/pair-capability-classify`, `/pair-process-review` | `/pair-capability-classify` (`## Tag Projection`), `/pair-process-bootstrap` (`## Criticality Table`, `## Overrides`, for the families Phase 3.6 asks about — the dimension-resolution family `business-impact.trivial-diff` is hand-authored, quality model §6) — **section ownership is the invariant**: writers of this file share it section by section, never whole-file |
 
 ## Navigation
 
-- **Start here**: Run `/pair-next` to determine what to do
-- **Process flow**: `/pair-process-specify-prd` → `/pair-process-bootstrap` → `/pair-process-plan-initiatives` → ... → `/pair-process-implement` → `/pair-process-review`
-- **Independent capability**: Any capability skill can be invoked directly (e.g., `/pair-capability-estimate`, `/pair-capability-assess-debt`)
+- **Start here**: Run `/pair-next` to determine what to do — or `/pair-next --mode analysis|implementation|review` to run a whole phase
+- **Process flow**: (`/pair-process-brainstorm` — optional discovery) → `/pair-process-specify-prd` → `/pair-process-bootstrap` → `/pair-process-plan-initiatives` → ... → `/pair-process-implement` → `/pair-process-review`
+- **Independent capability**: Any capability skill can be invoked directly (e.g., `/pair-capability-estimate`, `/pair-capability-analyze-debt`)

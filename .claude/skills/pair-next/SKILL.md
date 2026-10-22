@@ -1,20 +1,67 @@
 ---
 name: pair-next
-description: "Determines the most relevant next action for your project by reading adoption files and PM tool state. Suggests which skill to invoke next. Use at the start of a session, when switching tasks, or whenever you need guidance on what to work on."
-version: 0.4.1
+description: "Determines the most relevant next action for your project by reading adoption files and PM tool state. Suggests which skill to invoke next. Use at the start of a session, when switching tasks, or whenever you need guidance on what to work on. With --mode analysis|implementation|review it runs that macro-phase end to end."
+version: 0.7.0
 author: Foomakers
 ---
 
 # /pair-next — Project Navigator
 
-Analyze project state and recommend the single most relevant next skill to invoke. Covers the full 30-skill catalog across all lifecycle phases.
+Analyze project state and recommend the single most relevant next skill to invoke. Covers the full 51-skill catalog across all lifecycle phases.
 
-## Skill Catalog (30 skills)
+## Arguments (optional)
 
-### Process Skills (11)
+`/pair-next` accepts **optional** arguments (`--root`, `--filter`, `--assignee`, `--status`) that SCOPE which backlog items it may select, and an optional `--mode` that runs one macro-phase end to end. With none, it behaves exactly as before — the whole backlog is in scope and it only recommends. This scoping is what makes `/pair-next` the parametrizable atom of automation.
+
+| Argument   | Value                                          | Effect                                                          |
+| ---------- | ---------------------------------------------- | -------------------------------------------------------------- |
+| `--root`   | an issue id (epic or story)                    | Restrict selection to that issue's subtree in the PM hierarchy. |
+| `--filter` | one label, or a comma-separated any-of list (e.g. `ui`, `risk:red`, `risk:green,risk:yellow`), or `*` | Restrict selection to issues carrying ANY listed label (exact string equality). `*` (US-576, `filter: *`) = every card in scope, untagged included — no label narrowing; `*` inside a list is refused. |
+| `--assignee` | `@me` or a login                             | Restrict selection to issues assigned to that user (`@me` = the user the bound PM adapter is authenticated as — `cycle-state.mjs whoami`; any other value is an opaque login). |
+| `--status` | a comma-separated list of canonical macrostates (e.g. `Draft,Ready`) | Restrict selection to issues in ANY listed macrostate, resolved through the state mapping. Default: all open. |
+| `--mode` | `analysis`, `implementation` or `review` | Run that macro-phase: restrict the cascade to the mode's rows and execute the selected steps until the phase exit (see below). Default: none — plain `/pair-next` only recommends. On an empty `## Autonomy` a `--mode` run first asks the autonomy preset (see Step 0, item 0). |
+
+All may be combined — the effective scope is the **intersection**: `subtree ∩ matching tags ∩ assignee ∩ macrostates` (see Step 0); `--mode` narrows which cascade rows may fire inside that scope. These are the same names the Autonomy policy uses (`filter`, `assignee`, `status`, `root`). Precedence: argument > argument preset > explicit adoption key (`## Autonomy`, then translated legacy sections) > adoption preset > KB default — every effective value is printed with its source. Selection stays here: `/pair-next` has no loop state and no `--until` (ADR-017 §1 as amended by ADR-027).
+
+### `--root <issue-id>` — subtree scope
+
+Resolve the issue's descendants through the **PM-tool parent/child hierarchy** (sub-issues / parent links), never through title conventions. Selection is confined to that subtree — nothing outside it is ever proposed.
+
+- **Epic root** → operate at epic level: plan / refine / develop the epic's children only.
+- **Story root** → operate on that story: refine or develop it (and its tasks); never step outside it.
+
+The root issue is itself a **first-class member** of the candidate set, alongside its transitive children; a scoped run is a **backlog-item query** over that set. The **item-selection rows (6–11)** of Step 3 and Step 4 **row 16** (`/pair-capability-grill`) run against the candidate set instead of the full backlog — so a Draft story root selects `/pair-process-refine-story` on itself, a Ready story root selects `/pair-process-implement` (or `/pair-process-plan-tasks`), and nothing outside the set is ever proposed. The project-wide detectors are **never** surfaced under a scope: Step 2 (fresh-project detection) and Step 4 rows 12–15 (gate / stack / debt / estimation config) answer whole-project questions — not "which item in this subtree" — so a scoped run does not emit them; if the candidate set yields no actionable item, the run exits cleanly (Step 0 item 5) rather than falling through to them. Step 3 rows 3–5 (`/pair-process-plan-initiatives`, `/pair-process-plan-epics`, `/pair-process-plan-stories`) are **structural planning-gap detectors evaluated root-relatively**, never fired by a subtree's mere absence of a higher layer: a **story root skips rows 3–5 entirely** and begins at row 6 (its planning layers already exist), while an **epic root keeps row 5 scoped to itself** — an epic with no user-story children selects `/pair-process-plan-stories` (the epic-root "plan its children" action) — and skips rows 3–4 (an epic contains no initiatives or epics). Under a `--filter`-only scope (no root) there is no subtree, so rows 3–5, like the other project-wide detectors, are not surfaced.
+
+### `--filter <tag>` — generic tag match
+
+Keep only candidate issues that carry ANY of the given labels. `--filter` takes **one label or a comma-separated any-of list** (`a,b` = carries `a` OR `b`) — there is no AND/OR/NOT grammar, and the comma is only a list separator (an AND is a classification tag that synthesises it, upstream); each element is matched literally against each issue's labels. **A single-label `--filter` behaves exactly as before.** An empty element, a duplicate, or an element that could become a command fragment (backtick, `$(`, control character, over 50 characters) **HALTs** naming the element. The tag is interpreted **GENERICALLY: `/pair-next` assigns NO meaning to any tag value.** `risk:red` is matched by exactly the same string-equality predicate as `team:ui` — there is no classification, tiering, or severity logic anywhere in this skill (D18). A namespaced-looking label such as `tag:ui` carries **no** namespace semantics either: the whole string (colon included) is one opaque label, matched entire — so `--filter tag:ui` selects issues labelled literally `tag:ui`, exactly as `--filter ui` selects issues labelled `ui`. A filter is a plain PM-tool label query, nothing more.
+
+### `--mode <analysis|implementation|review>` — macro-phase facade
+
+A **macro-phase mode** runs one branch of the process end to end behind a single name, for a user who does not want to know the granular steps. It is a **facade over this cascade** — no new skill, no new process step (D24), no duplicated logic: the granular skills behave exactly as when invoked directly, and the mode ↔ step mapping (rows, steps, exit conditions) lives in one place, the [macro-phase modes guideline](../../../.pair/knowledge/guidelines/technical-standards/ai-development/macro-phase-modes.md), never restated here. Everything below is the **mechanism**; the guideline is the **data**.
+
+- **A row filter, not loop state**: `--mode` restricts the Step 2–3 rows the cascade may select to the mode's rows. It composes with every other argument by the same intersection and with the process profile (Step 0.5 — a disabled step's row is **skipped** and the enabled steps still chain across the gap). It is read here, not by `autonomy-policy.mjs`, and adds no loop state to the selector (ADR-017 §1 stands).
+- **It runs, then re-selects**: where plain `/pair-next` recommends and asks, a mode **runs** the selected step by invoking the granular skill for the work unit, then re-runs Step 0 against the current board state (never a cached selection) — until the guideline's phase exit holds, a step HALTs, or the same step would run again on an unchanged unit. The invoked skill keeps its own approval gates; invoking the mode is not an approval for them.
+- **One work unit per invocation**: the first item (or planning gap) the mode's rows select. When more units remain in scope, say so and point to `/pair-loop` (many cards) — a mode never iterates several cards in one context (ADR-017 §3).
+- **Macrostates and DoR stay in force**: a mode selects through the same row predicates — macrostate, checkpoint, task breakdown, Definition of Ready / Readiness Fallback — and never moves an item past a gate.
+- **Wrong context**: when the mode's rows select nothing, report what is missing, run the unmoded cascade once and **suggest the mode** whose rows match the action it would have proposed (clean exit, not an error). Rows 12–16 are never surfaced in a mode.
+- **A step HALT surfaces as-is**: named step, original message; the mode ends and never retries, reinterprets or continues. Profile and scope HALTs surface the same way.
+- **Unknown mode** → **HALT** listing `analysis`, `implementation`, `review`; never a quiet fallback to plain `/pair-next`.
+- **Narration at phase level**: describe what the phase does to the unit; name granular steps only when the user asks (and always when one HALTs).
+
+### Re-evaluation — selection is never cached
+
+The scope is **stateless across steps**. Every run — and every step of a mode session — re-queries the PM tool and **re-evaluates** `--root` and `--filter` against the **current** board state. If an issue's tags change between steps (e.g. a review raises `risk:yellow` → `risk:red`), the next step's selection reflects the change immediately. `/pair-next` never reuses a selection computed in a previous step.
+
+## Skill Catalog (51 skills)
+
+The catalog is **derived from the installed corpus**: every skill directory under `.skills/` must appear here — 10 process + 32 capability + 7 workflow + `/pair-next` and `/pair-loop` (the two bare, uncategorized navigator skills) = 51. If an installed skill is missing from these tables (or a row names a skill that is not installed), the catalog has drifted: update the tables, the stated counts, and the cascade rows together.
+
+### Process Skills (10)
 
 | Skill              | Lifecycle Phase    | Description                                     |
 | ------------------ | ------------------ | ----------------------------------------------- |
+| `/pair-process-brainstorm`      | Discovery          | Structured discovery: interview, domain, tree   |
 | `/pair-process-specify-prd`     | Induction          | Create or update Product Requirements Document  |
 | `/pair-process-bootstrap`       | Induction          | Orchestrate full project setup                  |
 | `/pair-process-plan-initiatives`| Strategic          | Create strategic initiatives from PRD           |
@@ -25,33 +72,150 @@ Analyze project state and recommend the single most relevant next skill to invok
 | `/pair-process-implement`       | Sprint Execution   | Implement story tasks with TDD                  |
 | `/pair-process-review`          | Sprint Execution   | Review PR through structured phases             |
 
-### Capability Skills (19)
+### Capability Skills (32)
 
-| Skill                | Category     | Description                                     |
-| -------------------- | ------------ | ----------------------------------------------- |
-| `/pair-capability-record-decision`   | Decision     | Record ADR or ADL with adoption update          |
-| `/pair-capability-write-issue`       | PM Tool      | Create/update issues in adopted PM tool         |
-| `/pair-capability-setup-pm`          | PM Tool      | Configure project management tool               |
-| `/pair-capability-verify-quality`    | Quality      | Check quality gates against codebase            |
-| `/pair-capability-verify-done`       | Quality      | Check Definition of Done criteria               |
-| `/pair-capability-verify-adoption`   | Quality      | Check code against adoption files per scope     |
-| `/pair-capability-assess-stack`      | Assessment   | Assess tech stack (lifecycle-spanning)           |
-| `/pair-capability-assess-architecture`| Assessment  | Assess architecture pattern                     |
-| `/pair-capability-assess-testing`    | Assessment   | Assess testing strategy                         |
-| `/pair-capability-assess-ai`         | Assessment   | Assess AI development tools                     |
-| `/pair-capability-assess-methodology`| Assessment   | Assess development methodology                  |
-| `/pair-capability-assess-pm`         | Assessment   | Assess project management tool                  |
-| `/pair-capability-assess-infrastructure`| Assessment| Assess infrastructure strategy                  |
-| `/pair-capability-assess-observability`| Assessment | Assess observability strategy                   |
-| `/pair-capability-assess-debt`       | Assessment   | Assess technical debt with prioritization       |
-| `/pair-capability-assess-code-quality`| Assessment  | Assess code quality with metrics                |
-| `/pair-capability-estimate`          | Planning     | Estimate story using adopted methodology        |
-| `/pair-capability-setup-gates`       | Configuration| Configure CI/CD quality gates                   |
-| `/pair-capability-manage-flags`      | Configuration| Manage feature flag lifecycle                   |
+| Skill                    | Category        | Description                                                                  |
+| ------------------------ | --------------- | ---------------------------------------------------------------------------- |
+| `/pair-capability-map-subdomains`        | Domain Modeling | Scoped DDD subdomain placement (+ Volatility)                                |
+| `/pair-capability-map-contexts`          | Domain Modeling | Scoped DDD bounded-context placement + relationship assessment               |
+| `/pair-capability-classify`              | Classification  | Apply the quality model → risk/cost matrix + tags (composed by refine-story, review) |
+| `/pair-capability-grill`                 | Alignment       | Interview engine: explore a topic or sync on a story, one question at a time |
+| `/pair-capability-record-decision`       | Decision        | Record ADR or ADL with adoption update                                       |
+| `/pair-capability-checkpoint`            | Session State   | Write/resume story progress checkpoint (work survives context resets)        |
+| `/pair-capability-publish-pr`            | Delivery        | Publish a story branch as a PR: gate, PR from template, tags, board state    |
+| `/pair-capability-write-issue`           | PM Tool         | Create/update issues in adopted PM tool                                      |
+| `/pair-capability-setup-pm`              | PM Tool         | Configure project management tool                                            |
+| `/pair-capability-setup-harness`         | Configuration   | Configure an agent harness (pi, opencode, Claude Code) — resolve, verify fitness, provision |
+| `/pair-capability-verify-quality`        | Quality         | Check quality gates against codebase                                         |
+| `/pair-capability-verify-done`           | Quality         | Check Definition of Done criteria                                            |
+| `/pair-capability-verify-adoption`       | Quality         | Check code against adoption files per scope                                  |
+| `/pair-capability-assess-stack`          | Assessment      | Assess tech stack (lifecycle-spanning)                                       |
+| `/pair-capability-assess-architecture`   | Assessment      | Assess architecture pattern                                                  |
+| `/pair-capability-assess-testing`        | Assessment      | Assess testing strategy                                                      |
+| `/pair-capability-assess-ai`             | Assessment      | Assess AI development tools                                                  |
+| `/pair-capability-assess-methodology`    | Assessment      | Assess development methodology                                               |
+| `/pair-capability-assess-pm`             | Assessment      | Assess project management tool                                               |
+| `/pair-capability-assess-infrastructure` | Assessment      | Assess infrastructure strategy                                               |
+| `/pair-capability-assess-observability`  | Assessment      | Assess observability strategy                                                |
+| `/pair-capability-assess-security`       | Assessment      | Assess security posture (review verdict + one-shot audit)                    |
+| `/pair-capability-assess-cost`           | Assessment      | Classify cost exposure (green/yellow/orange/red) at review — classify mode output-only; report mode writes one period cost-monitoring panel |
+| `/pair-capability-assess-coupling`       | Assessment      | Assess coupling balance (strength × distance × volatility) — diff verdict + full audit |
+| `/pair-capability-analyze-debt`          | Analysis        | Analyze technical debt with prioritization                                   |
+| `/pair-capability-analyze-code-quality`  | Analysis        | Analyze code quality with metrics                                            |
+| `/pair-capability-analyze-delivery-metrics` | Analysis     | Delivery/AI metrics for a period (bug resolution, PR lead time, adoption) → one period panel |
+| `/pair-capability-estimate`              | Planning        | Estimate story using adopted methodology                                     |
+| `/pair-capability-setup-gates`           | Configuration   | Configure CI/CD quality gates                                                |
+| `/pair-capability-manage-flags`          | Configuration   | Manage feature flag lifecycle                                                |
+| `/pair-capability-design-manual-tests`   | Testing         | Generate manual test suite from project analysis                             |
+| `/pair-capability-execute-manual-tests`  | Testing         | Execute manual test suite + generate report                                  |
+
+### Workflow Skills (7)
+
+Delivery-stage skills under `workflow/`, dispatched by the `pair-implement-batch` engine or by the in-session coordinator `/pair-workflow-cycle` — the four judgment stages of a delivery cycle, the batch-level template contract and the coordinator itself. They are catalogued for completeness and never cascade-suggested: a human does not invoke a remediation phase from a board state.
+
+| Skill | Stage | Description |
+| ----- | ----- | ----------- |
+| `/pair-workflow-red-spec` | 1 | Preparation: inventory, grouping, executable acceptance contract (witnesses + controls), test-only |
+| `/pair-workflow-red-verify` | 2 | Independent validation of the contract, all gaps in one answer, then the deterministic seal |
+| `/pair-workflow-implement-phase` | 3 | Initial implementation above the sealed contract, test-first; publishes the story's one PR |
+| `/pair-workflow-green-fix` | 3 | Remediation implementation inside fixScope above the seal; updates the PR |
+| `/pair-workflow-review-phase` | 4 | Independent final verification: custody, evidence, tier passes, stable findings, idempotent publication |
+| `/pair-workflow-contract-phase` | 0 | Ensure the template-derived machine contract (cache-by-hash via ensure-contract.mjs) |
+| `/pair-workflow-cycle` | — | In-session coordinator: drives one card through the whole cycle (or fix & review on a PR) from a Claude Code / Codex session, one stage per subagent |
+
+### Navigator Skills (2)
+
+The two bare, uncategorized entry points — every other skill lives under `process/`, `capability/` or `workflow/`.
+
+| Skill    | Description                                                                              |
+| -------- | ----------------------------------------------------------------------------------------- |
+| `/pair-next`  | This skill — recommends the single most relevant next skill from project/PM-tool state    |
+| `/pair-loop`  | Unattended delivery loop over an automation policy (#250) — fan-out in Claude Code, a degraded one-card + continue-token path elsewhere |
 
 ## Algorithm
 
 Execute these checks **in order**. Stop at the first match.
+
+### Step 0: Resolve Selection Scope (arguments)
+
+Run this before every other step, on **every** invocation — the result is never carried over from a previous run or step.
+
+0. **Resolve the effective selection first** — run `node <pair-workflow-cycle skill dir>/scripts/autonomy-policy.mjs resolve --adoption .pair/adoption/tech/automation.md --surface interactive --args '<JSON of the selection arguments given>'` — a JSON object carrying only the selection keys `root`, `filter`, `assignee` and `status` that were given (the one shared script `pair-cli run` and `/pair-workflow-cycle` also use; `## Autonomy` is read there, with the legacy `## Eligibility` translation). `--mode` is never passed to the script: it is read in Step 0.6, and the script refuses it as an unknown key, so passing it would HALT every moded run. and use its `effective` `root`/`filter`/`assignee`/`status` as the arguments below: argument > adoption (`## Autonomy`) > default, per key. `--surface interactive` (always passed here): a `filter` that comes ONLY from the legacy `## Eligibility` translation is the unattended-loop eligibility (`pair-cli run`, `/pair-loop`, `pair-implement-batch`) and is **set aside** for this interactive selection — the printed `lines` say so; an explicit `## Autonomy` `filter:` or a `--filter` argument still applies (`/pair-loop` hands its resolved filter to `/pair-next` as `--filter`, so unattended runs stay bounded). An explicit `--root` is never excluded by an inherited (adoption) filter on this interactive run (unattended callers keep filter and root together, intersected). A non-empty `errors` ⇒ **HALT** naming each key; never read a malformed key as absent. **Print** the script's `lines` (every effective value with its source) and its `warnings` before anything else. With `--mode` only: **Empty `## Autonomy` — ask the preset once (US-576).** When the resolution shows nothing declared or passed (every effective source `default`, no translated legacy section) and a human is present, ask `full / escalate-red / supervised` (Enter = `supervised`) and write `preset: <answer>` under `## Autonomy` in `.pair/adoption/tech/automation.md` through `/pair-capability-record-decision`, then resolve again. Unattended (no human to answer): write nothing, run with the KB defaults (every gate held — the supervised behaviour) and print how to set one (`preset: escalate-red` under `## Autonomy`, or `--preset` on `pair run`).
+1. **No arguments and no adoption selection** (every selection key `default`) → the candidate set is the full backlog; skip to Step 1.
+2. **`--root <id>`** → resolve the issue via the PM tool.
+   - **Root not found** (id does not resolve to an issue): **HALT** with a clear message (`root <id> not found`) and propose no action.
+   - **Root resolves to a Done issue**: report that the root is already Done and exit; propose no work.
+   - Otherwise: the candidate set is **the root issue itself plus its transitive children** through the PM-tool hierarchy (parent/child links). The root is a **first-class member** — a childless story or epic root yields a **one-issue** set, not an empty one — and is itself subject to the item-selection rows (a Draft story root → `/pair-process-refine-story`; a Ready story root → `/pair-process-implement` or `/pair-process-plan-tasks`). Later steps read this set instead of the full backlog.
+3. **`--filter <tag>`** → narrow the candidate set to issues carrying ANY listed tag (a single tag is a list of one), using a plain string-equality label query (tag-agnostic — no tag value gets special treatment). **When `--root` is absent the candidate set defaults to the full backlog, which `--filter` then narrows**; when `--root` is present it narrows that subtree.
+   - **`--assignee <login|@me>`** → keep issues assigned to that user. `@me` resolves through the bound PM adapter: `node .claude/skills/pair-workflow-cycle/scripts/cycle-state.mjs whoami` → `{ login }`; a `{ halt }` (e.g. `not-implemented` naming `resolveUser` on a tracker with no user, such as `filesystem`) **HALTs** with that reason — never a silent unassigned scope, never a code-host CLI of your own.
+   - **`--status <macrostates>`** → keep issues in ANY listed canonical macrostate, resolved through [Control-State Resolution](#control-state-resolution); `Draft` and `Ready` always resolve (on a board with no state mapped to `Ready` the procedure's DoR fallback decides, never a HALT); a value that is not one of the five canonical macrostates, or any other macrostate no board state maps, **HALTs** naming the value and the mapped set. Absent ⇒ all open.
+4. **Several** → apply the intersection of every argument given: `subtree ∩ matching tags ∩ assignee ∩ macrostates`.
+5. **Empty candidate set** — **zero issues** (e.g. `--filter` matches no issue): report `no matching issues` and exit cleanly — an empty result is normal, **not an error**. A childless `--root` (root with no children) is **one** issue, not empty: it flows into the cascade (see item 2). A **non-empty** set whose issues happen to be all non-actionable (e.g. all Done) is likewise not empty here — it falls through to the Step 5 fallback; actionability is decided in Steps 3–4, not by this emptiness check. Item 5's clean exit governs **backlog-item selection only**: a scoped run that finds no actionable item exits here and does **not** surface the project-wide config rows 12–15.
+
+The resolved candidate set feeds the scoped Step 3 item-selection (rows 6–11) and Step 4 row 16 (`/pair-capability-grill`). Step 2 and rows 12–15 (project-wide) are not surfaced under a scope; rows 3–5 are evaluated **root-relatively** (epic root → row 5 only; story root → skipped) — see Step 3. A scope **presupposes an established project** (adoption files populated, a real backlog): on a fresh template project `--root`/`--filter` are never passed — Step 2 fresh-project detection governs and steers to `/pair-process-bootstrap`, so the Step 3 "all adoption files populated" premise always holds under a scope. Because Step 0 re-runs each time, a tag mutation between steps changes the selection on the next step automatically.
+
+### Step 0.5: Resolve the Process Profile
+
+A project may run a **subset** of the process. Read [.pair/adoption/tech/way-of-working.md](../../../.pair/adoption/tech/way-of-working.md) → `## Process Profile`, resolve it against the [step catalogue](../../../.pair/knowledge/guidelines/technical-standards/ai-development/step-catalogue.md) per the [profile schema](../../../.pair/knowledge/guidelines/technical-standards/ai-development/process-profiles.md), and carry the resulting **enabled step set** into Steps 2–5 — the cascade rows AND the Step 5 fallback, which names skills in prose and is therefore not covered by the row filter. Like Step 0, this runs on **every invocation** and is **re-read every run, never cached** — an edit to way-of-working takes effect on the next run.
+
+1. **No `## Process Profile` section** → the profile is `default`: **every** catalogued step is enabled and the whole cascade below runs **unchanged**, exactly as it did before profiles existed. This is the overwhelmingly common case; skip straight to Step 1.
+2. **`profile: default` / `poc`** → the built-in step set from the schema. **`profile: custom`** → the declared `whitelist`.
+3. **Validate, and HALT rather than narrow quietly** — a misread profile does not surface as an error a user sees, it removes a step from every suggestion, which looks exactly like that step not being due yet. **A HALT resolves to no step set at all** — stop and report, never continue on `default` and never on an empty set:
+   - **unknown profile name** → **HALT**, listing the known profiles (`default`, `poc`, `custom`);
+   - **unknown step id** in the whitelist → **HALT**, listing the valid ids from the catalogue. Deliberately a *different* message from the one above: a typo in a step id and a profile that does not exist are not the same mistake, and one generic message sends the reader to the wrong file. A typo must never resolve to "disabled";
+   - **a step id named more than once** in the whitelist → **HALT** naming it, never deduped in silence. The same mistake HALTs one level up when it is the *key* that repeats; a repeat is as likely an edit never finished (the second name was to become a different step) as a harmless one; and unread it emits that step's prerequisite warning twice byte for byte and makes every "N steps enabled" count wrong;
+   - **no `whitelist` key** under `custom` → **HALT**: `custom` requires one. Deliberately a different message from the next line — "you wrote none" is not "you wrote an empty one", and one message sends the reader hunting for a line their file does not have;
+   - **empty whitelist** under `custom` → **HALT** as a **misconfiguration**, never read as "every step disabled";
+   - **`whitelist` under a built-in profile, or with no `profile` key** → **HALT**: it would otherwise be silently ignored;
+   - **a key in a shape the schema does not accept** (`- profile: poc`, value unbackticked; a bolded key is fine) → **HALT** restating the shape. Read the key **loosely** and its value **strictly**: an unreadable line treated as "no declaration" resolves to `default`, which **widens** the profile to the whole process silently — the one direction of failure nothing downstream catches. The key's **case** is on the loose side, like the heading's: `` - `Profile`: `poc` `` and `` - `Whitelist`: … `` are those keys, read **case-insensitively** and reported under their canonical spelling — while `` - `profile`: `POC` `` is still an unknown profile name and **HALTs**;
+   - **the same key declared twice** in one section (two `profile` lines, or two `whitelist` lines) → **HALT** naming the key. Only the last would be read, so the earlier declaration takes effect nowhere, and which HALT fired used to depend on the two lines' order. A key is **one line, on a `-`, `*` or `+` list item**: a key written with **no bullet** or with an ordered-list marker (`1.`, `1)`) is a **HALT** too, never invisible text, backticked or not — the two errors compose rather than cancel, so `1. profile: poc` HALTs exactly as ``1. `profile`: `poc``` does; backticks are required only where there is no marker at all — reading it as prose resolves the section to `default` and re-widens the project to the whole process. A key inside a **blockquote** (`` > - `profile`: `poc` ``) **HALTs** for the same reason (`>` is not indentation, and nothing in the corpus writes a blockquoted list item); a key inside a documentation **table row** (`` | `profile` | `poc` | ``) is the deliberate opposite — **no declaration and no HALT**, because that is the shape the schema and the adoption template use to document these keys;
+   - **more than one `## Process Profile` section**, the heading at **any level other than `##`** (`### Process Profile`), or the heading written as **setext** (`Process Profile` underlined with `---` / `===`) → **HALT**. Same widening hole one level further up: only the first section is read and the rest is dropped in silence, and a heading at the wrong level or in the wrong form is neither a section nor a reported problem. The adoption template ships an empty `## Process Profile` section already, so *appending* a second is the likelier edit — check the count, the level and the form before reading the keys. Decoration does not change the section: `## Process Profile ##` (closed ATX) and up to three spaces of indent are the same heading.
+   - **a key under no `## Process Profile` section at all** — under `## Process Profiles` (plural), `## ProcessProfile`, an unrelated heading, or no heading whatever → **HALT** naming the line. Every rule above is about the heading's shape and closes only the spellings it names, while a key was read solely INSIDE a matched section and reported nowhere outside one: the same silent `default`. A key-shaped line inside a code block, an HTML comment or a table row is not one;
+   - **a value that SPILLS past its key's line** — wrapped onto the next line, or ending on a dangling `,` — → **HALT**. Read up to the wrap the line looks complete, so the ids after it are dropped from every suggestion with nothing reported; and a long `custom` whitelist under an 80-column lint rule makes wrapping the natural edit. A key that is **indented by four spaces or a tab** → **HALT** as well: indented code block or sublist item, the line does not say which, and the same key indented by two spaces IS read — so skipping it makes the profile depend on the author's Tab width;
+   - **Read the file as CommonMark, not as lines of text**: normalize line endings first (a CRLF checkout — the Windows default — otherwise matches no key and no heading at all, and the whole section resolves to `default` in silence), and treat all three code-block forms (```` ``` ````, `~~~`, four-space indent) as EXAMPLES rather than declarations — a fence closing only on a run of the same character **at least as long** as the one that opened it, so a **four-backtick** fence wrapping a ```` ``` ```` example keeps it an example. **HTML comments are masked** before anything is read (a commented-out section is not a second section), and a fence or comment the file never CLOSES is a **HALT**: everything after it reads as non-content, so the real section is not found and nothing else would report that the file was never read.
+4. **Filter, don't fail.** Any candidate row whose step is disabled is **SKIPPED** — dropped from the cascade and never proposed. A disabled step is **not an error**: evaluation simply continues to the next row, so enabled steps chain correctly across the gaps. **The Step 5 fallback is bound by the same rule**: it is prose, not a row, so apply the filter to it explicitly (Step 5).
+5. **Prerequisite consistency (report, don't repair).** Prerequisites are an **any-of**: satisfied when the step's `Requires` list is empty or **at least one** listed step is enabled. For each enabled step whose list is entirely disabled, report the inconsistency with the **minimal fix** — the configuration is readable, so the run continues, and it is **never silently** repaired nor silently tolerated:
+
+   > `plan-stories` is enabled but none of its prerequisites are — minimal fix: enable `plan-epics` or `brainstorm`, or drop `plan-stories`
+
+**Row → step id.** The filter is a lookup, not a judgement — this table is the mapping, so nothing about it is inferred from a row's wording:
+
+| Cascade row                             | Step id                                          |
+| --------------------------------------- | -------------------------------------------------- |
+| 1 `/pair-process-specify-prd`                        | `specify-prd`                                      |
+| 2 `/pair-process-bootstrap`                          | `bootstrap`                                        |
+| 3 `/pair-process-plan-initiatives`                   | `plan-initiatives`                                 |
+| 4 `/pair-process-plan-epics`                         | `plan-epics`                                       |
+| 5 `/pair-process-plan-stories`                       | `plan-stories`                                     |
+| 6 `/pair-process-review`                             | `review`                                           |
+| 7 `/pair-capability-checkpoint`                         | *(none — not a step, therefore never filtered)*    |
+| 8, 9 `/pair-process-implement`                       | `implement`                                        |
+| 10 `/pair-process-plan-tasks`                        | `plan-tasks`                                       |
+| 11 `/pair-process-refine-story`                      | `refine-story`                                     |
+| 12–16                                   | *(none — not steps, therefore never filtered)*     |
+
+Row 7 and rows 12–16 propose **capabilities that are not steps** ([why](../../../.pair/knowledge/guidelines/technical-standards/ai-development/step-catalogue.md#what-this-catalogue-does-not-govern)): the profile governs the process a team runs, not every tool a skill reaches for, so those rows are never filtered by it. `/pair-process-brainstorm` and `/pair-capability-map-subdomains` / `/pair-capability-map-contexts` are steps but have no cascade row — nothing to filter there either; their profile handling is the [process-profile gate](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/process-profile-gate.md) at invocation.
+
+Under `poc` this is what makes the guarantee hold end to end: rows 3 and 4 are dropped, and no DDD-mapping step is reachable from `/pair-next` at all.
+
+### Step 0.6: Resolve the Mode (`--mode`)
+
+Skip when no `--mode` is given — the cascade runs unchanged and recommends. Otherwise, on **every** invocation, never cached:
+
+1. **Validate**: a value other than `analysis`, `implementation`, `review` → **HALT** (unknown mode), listing the three.
+2. **Read the row set** for the mode from the [macro-phase modes guideline](../../../.pair/knowledge/guidelines/technical-standards/ai-development/macro-phase-modes.md) → `## The Mode Table`. A missing or unreadable table → **HALT** naming the file; never fall back to plain `/pair-next`.
+3. **Carry the row set into Steps 2–5**: a row outside it is skipped, exactly like a disabled step. Evaluation stays top-to-bottom, first match wins; the scope (Step 0) and the profile (Step 0.5) apply first.
+
+### Control-State Resolution
+
+The ONE procedure that turns a backlog item into a **control state** (R2.5, D4). Step 0's `--status`, rows 6–11 of Step 3 and every orchestration mode (`/pair-loop`, `/pair-workflow-cycle`, `pair-cli run`) **reference** it and never re-derive it. Its only inputs are the item's board-state literal, its body and the `## State Mapping` — nothing else. Decision logic speaks in **macrostates**, never board-state names; a **title is never a control signal** — it is read for exactly one thing, the Definition of Ready's presence check (is it a template placeholder?), and its wording, prefix or keywords never move an item between states.
+
+1. **Map lookup (primary).** Read `## State Mapping` in [way-of-working.md](../../../.pair/adoption/tech/way-of-working.md); look the literal up case-insensitively → its macrostate. **Section absent (missing WoW)** → the canonical names are assumed (D21): the literal is a macrostate when it case-insensitively equals one of the five. Rules and examples: [canonical-states.md](../../../.pair/knowledge/guidelines/collaboration/project-management-tool/canonical-states.md).
+2. **Unmapped ⇒ out-of-process.** A literal neither mapped nor canonical is **out-of-process** — "unmapped states allowed" (#202, Reading rule 4): report it in one line (see Output Format), leave it out of every row, and carry on. **Not an error**, never a HALT, never proposed.
+3. **Readiness (the Draft/Ready boundary only).** The mapped state is the **primary** signal: a literal that resolves to `Ready` is `Ready`. The DoR is the **fallback**, used only when the map gives no answer for the boundary — **no board state in the map resolves to `Ready`** (a board without a Ready column; with the section absent, a board whose own states give no `Ready`). Then evaluate the [Definition of Ready](../../../.pair/knowledge/guidelines/collaboration/project-management-tool/definition-of-ready-and-done.md) against the item's **body**: all criteria met ⇒ effectively `Ready`; otherwise `Draft`, and the report lists **every failing criterion by name** — never a blanket "not ready", never readiness guessed from a subset. The criteria — including the inline task-breakdown signal — are the canonical set from that document: **single source, no local variant** here.
+4. **Conflicting signals.** The state says `Ready` but the DoR fails ⇒ **flag** the item to the user with the failing criteria listed (see Output Format). The mapped state wins — the item stays `Ready` and the flag is a warning for visibility, never a block.
+
+Everything downstream (rows 6–11, the tie-break, the profile filter) consumes the resolved macrostate and nothing earlier.
 
 ### Step 1: Read Adoption Files
 
@@ -60,8 +224,10 @@ Read the following files and classify each as **populated** or **template**:
 | File                                                                                               | Template indicator                                        |
 | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | [.pair/adoption/product/PRD.md](../../../.pair/adoption/product/PRD.md)                               | Contains `[Product/feature name]` or `[Creation date]`    |
+| [.pair/adoption/product/subdomain/README.md](../../../.pair/adoption/product/subdomain/README.md)     | Contains `[list here core subdomain]` or `[PROJECT_NAME]` |
 | [.pair/adoption/tech/architecture.md](../../../.pair/adoption/tech/architecture.md)                   | Contains only placeholder headings with no real content   |
 | [.pair/adoption/tech/tech-stack.md](../../../.pair/adoption/tech/tech-stack.md)                       | Contains only placeholder headings with no real content   |
+| [.pair/adoption/tech/boundedcontext/README.md](../../../.pair/adoption/tech/boundedcontext/README.md) | Contains only placeholder headings with no real content   |
 | [.pair/adoption/tech/way-of-working.md](../../../.pair/adoption/tech/way-of-working.md)               | No PM tool specified or only template text                |
 
 **Template detection rule**: A file is a template if it contains square-bracket placeholders (e.g., `[Product/feature name]`) or if its substantive sections contain no project-specific content.
@@ -73,34 +239,55 @@ Read the following files and classify each as **populated** or **template**:
 | 1   | PRD.md is template                                        | `/pair-process-specify-prd`    | Product vision must come first   |
 | 2   | PRD.md populated AND 3+ tech adoption files are templates | `/pair-process-bootstrap`      | Project needs foundational setup |
 
+**Profile filter**: both rows above are subject to the enabled step set resolved in Step 0.5 (row 1 → `specify-prd`, row 2 → `bootstrap`) — a row whose step is disabled is skipped, never proposed, and evaluation continues at the next row. Stated here as well as under Step 3 because the filter is not a Step 3 rule: Step 0.5 carries the set into Steps 2–5.
+
 If any of the above matched, output the suggestion and stop.
+
+> DDD domain mapping (`/pair-capability-map-subdomains`, `/pair-capability-map-contexts`) is a scoped capability, not a mandatory fresh-project step — it is invoked by `/pair-process-plan-initiatives`, `/pair-process-plan-epics`, `/pair-process-refine-story`, `/pair-process-plan-tasks`, or `/pair-process-bootstrap` when they touch a capability/context, not suggested directly here. Projects without DDD artifacts fall back to "system areas" gracefully — no HALT.
 
 ### Step 3: Cascade — Established Project Detection
 
-All adoption files are populated. Query the PM tool to determine backlog state.
+All adoption files are populated. Query the PM tool to determine backlog state — **restricted to the candidate set resolved in Step 0** when `--root`/`--filter` are set (re-evaluated every run, never cached). This restriction is scoped to the **item-selection rows 6–11** (and Step 4 row 16): it includes row 6's open-PR detection — only PRs whose linked issue is inside the candidate set count — so a PR for an issue outside the subtree/filter is **never** surfaced as `/pair-process-review`, preserving the guarantee that nothing outside the scope is ever selected. Rows 3–5 (`/pair-process-plan-initiatives`, `/pair-process-plan-epics`, `/pair-process-plan-stories`) are **structural planning-gap detectors**, not item selectors, and under `--root` are **evaluated root-relatively** — never fired by a subtree's mere structural absence of a higher layer:
+
+- **Story root** → rows 3–5 are **skipped**; the cascade begins at row 6 (the story's initiative/epic/story layers already exist, and its candidate set holds no initiatives or epics to plan).
+- **Epic root** → rows 3–4 are skipped (an epic contains no initiatives or epics); **row 5 is kept, scoped to the root epic** — if it has no user-story children, select `/pair-process-plan-stories`. This is the epic-root "plan its children" action.
+- **`--filter`-only (no root)** → there is no subtree; rows 3–5, being project-wide structural detectors, are not surfaced (a scoped run is a backlog-item query).
+
+Rows 12–15 are likewise project-wide and not surfaced under a scope; when the candidate set yields no actionable item, Step 0 item 5's clean exit governs (see Step 0).
+
+**Profile filter**: every row below is additionally subject to the enabled step set resolved in Step 0.5 — a row whose step is disabled is skipped, never proposed, and evaluation continues at the next row.
 
 **PM tool discovery**: Read [.pair/adoption/tech/way-of-working.md](../../../.pair/adoption/tech/way-of-working.md) to identify the PM tool (GitHub Projects, Jira, Linear, etc.) and access method.
 
+**Code host discovery**: **row 6's open-PR detection queries the code host, not the PM tool** — a PR read is a code-host operation. Resolve `code-host` from way-of-working.md → `## Git Workflow`; **absent ⇒ the code host is the PM tool**, so a single-tool project queries one tool exactly as before. When the two differ, match each open PR to its backlog item through the `Refs: <issue-id>` cross-link in the PR body (that is how "the PR's linked issue" is determined for the candidate-set restriction), while every item/state read below stays on the PM tool. Resolution + routing table: [way-of-working / PM-tool + code-host resolution](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/way-of-working-pm-resolution.md).
+
+**State resolution**: The conditions below refer to canonical **macrostates** (`Draft`, `Ready`, `In Progress`, `Review`, `Done`), never board-specific labels. Resolve every item through [Control-State Resolution](#control-state-resolution) — the map lookup, the DoR fallback for a board with no Ready state, the out-of-process report for an unmapped state and the conflict flag live there, once; this step only consumes the result.
+
 | #   | Condition                                                        | Suggestion          | Rationale                                   |
 | --- | ---------------------------------------------------------------- | ------------------- | ------------------------------------------- |
-| 5   | No initiatives or epics exist in PM tool                         | `/pair-process-plan-initiatives` | Strategic planning needed                   |
-| 6   | Initiatives exist but no epics                                   | `/pair-process-plan-epics`       | Epic decomposition needed                   |
-| 7   | Epics exist but no user stories                                  | `/pair-process-plan-stories`     | Story breakdown needed                      |
-| 8   | Stories exist without acceptance criteria or with `status:draft`  | `/pair-process-refine-story`     | Stories need refinement before work         |
-| 9   | Refined stories exist but have no task breakdown                  | `/pair-process-plan-tasks`       | Tasks must be created before implementation |
-| 10  | Tasks in "ready" or "todo" state exist                            | `/pair-process-implement`        | Work is ready to start                      |
-| 11  | Open pull requests or tasks in "review" state                     | `/pair-process-review`           | Code review pending                         |
+| 3   | No initiatives or epics exist in PM tool                         | `/pair-process-plan-initiatives` | Strategic planning needed                   |
+| 4   | Initiatives exist but no epics                                   | `/pair-process-plan-epics`       | Epic decomposition needed                   |
+| 5   | Epics exist but no user stories (under a `--root <epic>` scope this is evaluated **root-relatively** — the root epic's own story children, not the whole board; see the Step 3 header) | `/pair-process-plan-stories`     | Story breakdown needed                      |
+| 6   | Open pull requests, or items resolve to macrostate `Review`       | `/pair-process-review`           | Code review pending — closest to delivery   |
+| 7   | A story resolves to macrostate `In Progress` AND its checkpoint file exists (`.pair/working/checkpoints/<story-id>.md`) | `/pair-capability-checkpoint` | Resume interrupted work (`$mode: resume`) before re-analysis |
+| 8   | A story resolves to macrostate `In Progress` but has NO checkpoint file | `/pair-process-implement`   | Continue the in-progress work — `/pair-process-implement` re-derives state from scratch when no checkpoint exists |
+| 9   | Stories resolve to macrostate `Ready` AND a task breakdown exists | `/pair-process-implement`        | Work is ready to start                      |
+| 10  | Stories resolve to macrostate `Ready` but have NO task breakdown  | `/pair-process-plan-tasks`       | Tasks must be created before implementation |
+| 11  | Stories resolve to macrostate `Draft` (missing acceptance criteria, or failing the Definition of Ready through Control-State Resolution) | `/pair-process-refine-story` | Stories need refinement before work |
+
+**Tie-break**: on a real backlog several of rows 6–11 can hold at once (e.g. Draft stories AND an open PR). Row order resolves this — rows are sorted by delivery proximity (`/pair-process-review` > `/pair-capability-checkpoint` > `/pair-process-implement` > `/pair-process-plan-tasks` > `/pair-process-refine-story`): evaluate top-to-bottom, stop at the first match. For a single item the distinguishing predicates (macrostate, checkpoint file present/absent, task breakdown present/absent) make rows 7–11 mutually exclusive; across items, row order decides. Every `In Progress` story matches row 7 or row 8 — the fallback (Step 5) is never reached for active work.
 
 ### Step 4: Capability Skill Suggestions
 
-If no process skill matched in Steps 2-3, check for capability skill opportunities:
+If no process skill matched in Steps 2-3, check for capability skill opportunities (same rule: evaluate in order, stop at the first match). These rows propose capabilities that are **not steps**, so the Step 0.5 profile filter never applies to them:
 
 | #   | Condition                                                                | Suggestion           | Rationale                                      |
 | --- | ------------------------------------------------------------------------ | -------------------- | ---------------------------------------------- |
 | 12  | Quality gate not configured (no Quality Gates section in way-of-working) | `/pair-capability-setup-gates`       | Quality gates should be established             |
 | 13  | Tech stack has unlisted dependencies detected                            | `/pair-capability-assess-stack`      | Stack registry needs updating                   |
-| 14  | Technical debt flags present (TODO/FIXME/HACK comments detected)         | `/pair-capability-assess-debt`       | Debt should be cataloged and prioritized        |
+| 14  | Technical debt flags present (TODO/FIXME/HACK comments detected)         | `/pair-capability-analyze-debt`      | Debt should be cataloged and prioritized        |
 | 15  | No estimation methodology adopted in way-of-working                      | `/pair-capability-estimate`          | Estimation process should be established        |
+| 16  | A backlog item carries open questions or unclear scope (question markers, conflicting comments) that block planning — **restricted to the Step-0 candidate set when `--root`/`--filter` are set** (an out-of-scope item is never surfaced, same as row 6) | `/pair-capability-grill` | Structured one-question-at-a-time alignment before planning |
 
 ### Step 5: Fallback
 
@@ -110,6 +297,30 @@ If no condition matched in Steps 2-4:
 > Consider: starting a new iteration with `/pair-process-plan-stories`, or running `/pair-process-review`
 > to check for open items.
 
+**The fallback names skills, so the Step 0.5 filter applies here too** — and it is prose, not a row, so it is applied explicitly, in this order:
+
+1. **Never name a disabled step.** Drop it from the sentence. If both named steps are disabled, the sentence is empty — go to rule 2.
+2. **Never name a step whose input cannot exist.** `/pair-process-plan-stories` needs epics. On a backlog with no epics, rows 3–4 normally fire first; a profile may disable them, and then nothing upstream covers the empty backlog. In that case name the enabled step that **produces** a backlog — `/pair-process-brainstorm`, which has no cascade row and is otherwise never proposed anywhere.
+3. If neither rule leaves a candidate, **report the state and propose no skill**. An empty backlog under a profile with no reachable entry point is a configuration to fix, not a step to run.
+4. **Under `--mode`** the sentence names only steps of the mode (its Steps and Fallback-only lists in the guideline), and a mode does not stop at naming its fallback-only step: Step 6 item 1 runs it once. A mode with nothing to run is a wrong-context report (Step 6), not a fallback to another mode's steps.
+
+| Profile   | Backlog                | Fallback names                                                                       |
+| --------- | ---------------------- | -------------------------------------------------------------------------------------- |
+| `default` | any                    | `/pair-process-plan-stories` + `/pair-process-review`, verbatim above (row 3 covers the empty-backlog case first) |
+| `poc`     | epics exist            | `/pair-process-plan-stories` + `/pair-process-review`                                                            |
+| `poc`     | no epics               | `/pair-process-brainstorm` — rows 3–4 are disabled and row 5 needs epics, so it is the only enabled producer of the input `/pair-process-plan-stories` requires |
+| `custom`  | any                    | rules 1–3 above, in order                                                              |
+
+### Step 6: Run the Phase (only with `--mode`)
+
+Plain `/pair-next` stops after Step 5 with a recommendation. With `--mode`:
+
+1. **Pick the work unit** from the first match (Steps 2–4, restricted to the mode's rows). When no row selects and the mode lists a fallback-only step, run it once: invoke the step Step 5 rule 2 names, under its own gates and the Step 0.5 filter. The fallback-only step is run only when the cascade run once without the mode filter also reaches Step 5 (no enabled row of any mode holds for the board; rows 12–16 are capabilities that belong to no mode and never count as a row holding) and the backlog has no epics. When a row of another mode holds, the fallback-only step is not run: the session is a wrong-context report suggesting that mode. A wrong-context report outranks the profile report, so it holds even if the profile skipped the mode's own rows. Otherwise no match → **wrong context**: report what is missing and suggest the mode whose rows match the answer of the cascade run once without the mode filter; when that proposes nothing either, report as the plain run would.
+2. **Invoke the granular skill** the row names for the unit, with the arguments a user would give it. Its output, gates and HALTs belong to it.
+3. **Re-evaluate** — Step 0 onward, same scope, same mode, current board state — and continue from item 2 with the next match for the same unit. Row 7's `/pair-capability-checkpoint` resume leaves the checkpoint file in place, so row 7 still holds after it and row 8's predicate (no checkpoint file) is still false. After the row 7 `/pair-capability-checkpoint` resume has run for the unit in this session, the same unit continues with row 8's step `/pair-process-implement`, and when that step is disabled by the profile it is skipped like any other. The resume is read-only and leaves the unit unchanged, so the unchanged-unit stop of item 4 does not apply to it.
+4. **Stop** when the guideline's exit holds for the unit, when a step HALTs (surface it as-is), or when the selected step would repeat on an unchanged unit.
+5. **Report at phase level**: the unit, what the phase did to it, why it stopped, and the mode that continues the process; list remaining units in scope without running them.
+
 ## Output Format
 
 Present results as:
@@ -118,24 +329,54 @@ Present results as:
 PROJECT STATE:
 ├── PRD: [populated | template]
 ├── Bootstrap: [complete | incomplete — N/M adoption files populated]
+├── Subdomains: [populated | template]
+├── Bounded Contexts: [populated | template]
 ├── PM Tool: [tool name | not configured]
-└── Backlog: [summary of current items]
+├── Scope: [full backlog | root #ID (subtree) | filter <tag[,tag…]> | assignee <login> | status <macrostates> | any intersection of them], each value with its source (argument | adoption | default)
+├── Profile: [default (no section) | poc | custom — N/M steps enabled]
+├── Mode: [none (recommend only) | analysis | implementation | review — from `--mode`]
+├── Control state: [per item: macrostate, and how it resolved — state mapping | canonical name | DoR fallback]
+└── Backlog: [summary of current items — within scope; out-of-process items counted apart]
 
 RECOMMENDATION: /skill-name
 REASON: [one-line explanation]
 ```
 
+When `--root`/`--filter` yield no work, replace the recommendation with the corresponding Step 0 outcome (`root <id> not found` → HALT; `root <id> is Done` → exit; `no matching issues` → clean exit).
+
+Control-State Resolution reports, each on its own line after the recommendation:
+
+```text
+OUT-OF-PROCESS: #<id> — board state "<literal>" is unmapped (not an error; ignored for pair semantics)
+CONFLICT: #<id> — state says Ready, DoR fails: <failing criterion>, <failing criterion>
+```
+
 Then ask: "Shall I run `/skill-name`?"
+
+With `--mode` there is no question: the phase runs (Step 6) and ends with a phase-level report instead of a recommendation:
+
+```text
+PHASE: [analysis | implementation | review] on [#ID | planning gap]
+DONE: [what the phase did to the unit, at phase level]
+STOPPED: [phase exit | HALT — <step, message as-is> | wrong context — <what is missing>; try --mode <mode> | all steps disabled by profile — <steps>]
+REMAINING: [other units in scope, not run — /pair-loop for many cards | none]
+NEXT MODE: [the mode that continues the process | none]
+```
 
 ## Graceful Degradation
 
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (PM tool not accessible → skip Step 3, recommend from adoption files only; adoption files missing → suggest `/pair-process-bootstrap` as the entry point) for the standard scenarios. Additional cases:
+
+- **Argument edge cases** (see Step 0): `--root` not found → HALT, no action; `--root` resolves to a Done issue → report and exit; `--filter` (or the subtree) matches nothing → report `no matching issues` and exit cleanly (an empty result is not an error).
 - If a suggested skill is not installed, tell the user which skill is needed and where to find it.
-- If the PM tool is not accessible (no MCP connection, no credentials), skip Step 3 and report: "PM tool not accessible — recommendation based on adoption files only."
-- If adoption files cannot be read (not installed yet), suggest `/pair-process-bootstrap` as the entry point.
+- If way-of-working.md has no `## Process Profile` section, the `default` profile applies — every step enabled, cascade unchanged. This is the zero-configuration default, not a degradation; the profile's own error cases (unknown name/id, empty whitelist) HALT instead, per Step 0.5.
+- If way-of-working.md has no `## State Mapping` section, canonical macrostate names are assumed (D21) and the DoR fallback stays active — this is the zero-configuration default, not a degradation.
+- If way-of-working.md declares no `code-host`, the code host is the PM tool — likewise the zero-configuration default, not a degradation. If a **declared** code host is unreachable, skip row 6's open-PR detection (say so) and evaluate the remaining rows from PM-tool state; never HALT a read-only recommendation over it.
+- If a board can't distinguish `Draft` from `Ready` (no dedicated Ready column), Control-State Resolution's DoR fallback decides rather than row 11's condition being unresolvable.
 
 ## Notes
 
-- This skill is read-only: it inspects state but never modifies files or PM tool data.
-- When multiple items are actionable (e.g., tasks to implement AND PRs to review), prefer the item closest to delivery (`/pair-process-review` > `/pair-process-implement` > `/pair-process-plan-tasks`).
+- Plain `/pair-next` (without `--mode`) is read-only: it inspects state but never modifies files, PM tool data, or code-host data. With `--mode` it still writes nothing itself — the granular skills it invokes do, exactly as when invoked directly.
+- Row order encodes the tie-break (delivery proximity) — see the **Tie-break** note under the Step 3 table.
 - Re-run `/pair-next` after completing any skill to get an updated recommendation.
-- **Full catalog coverage**: this navigator can suggest any of the 30 skills based on project state. Process skills are suggested through the cascading checks (Steps 2-3). Capability skills are suggested through targeted checks (Step 4) or as part of process skill composition.
+- **Full catalog coverage**: nearly all of the 51 skills can be suggested — process skills via the cascading checks (Steps 2-3), capability skills via targeted checks (row 7 `/pair-capability-checkpoint`, rows 12-16 including `/pair-capability-grill`) or process-skill composition. `/pair-capability-publish-pr` will be reachable via `/pair-process-implement` once wired (not yet composed), so `/pair-next` cannot surface it today. `/pair-process-brainstorm` is a human-initiated discovery entry point — it opens a theme the backlog does not yet contain, which no board-state condition can detect — so it is catalogued here but never suggested by the cascade. `/pair-capability-analyze-delivery-metrics` is the same shape for the same reason: a retro/period report is wanted on a cadence the board does not express, so it is catalogued and reachable on demand, never cascade-suggested.

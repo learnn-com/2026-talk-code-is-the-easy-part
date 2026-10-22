@@ -2,147 +2,147 @@
 
 ## Overview
 
-Automation strategies for Azure DevOps workflows, including Azure Pipelines, board rules, service hooks, and workflow orchestration to improve team efficiency and consistency.
+Automation strategies for Azure DevOps project management workflows using board rules, branch policies, and service hooks. Scope: collaboration automation only — pipeline quality gates are defined in the [quality-assurance guidelines](../../quality-assurance/automated-verification.md) and linked here, not duplicated.
 
-## Automation Components
+## Board Rules
 
-### Status Synchronization
+Azure Boards supports per-column and per-state automation configured in board settings (Boards → board → gear icon → Automation or Rules, depending on process customization level).
 
-**Work Item to Board Updates**
+### Recommended Rules
 
-- Automatic board column updates based on work item state changes
-- Parent-child relationship status propagation
-- Sprint assignment and capacity management
+- **PR opened → Review-mapped column** — when a linked PR is created, move the work item to the column mapped to `Review`
+- **PR completed → Done-mapped column** — `az repos pr update --transition-work-items true` performs this transition on merge
+- **Child activation → parent activation** — when a Task moves to an In Progress-mapped state, activate the parent story
+- **All children closed → resolve parent** — optional; pair's `/pair-process-review` skill also performs the parent cascade explicitly
 
-**Pull Request Integration**
+### State Transition Consistency
 
-- Automatic work item linking when commit messages contain `#WORK-ITEM-ID`
-- Status updates when pull requests are created, reviewed, or merged
-- Branch policy enforcement for required reviewers and build validation
+Board rules must stay consistent with the `## State Mapping` section in `way-of-working.md` — a rule that moves items to a column outside the map makes those items invisible to pair macrostate logic (unmapped columns are ignored, per [canonical-states.md](../project-management-tool/canonical-states.md)).
 
-**Hierarchical Status Management**
+## Branch Policies
 
-- Initiative -> Epic -> PBI -> Task status cascading
-- Bottom-up status propagation rules
-- Parent completion validation based on child item completion
+Branch policies on `<base-branch>` enforce the PR workflow:
 
-### Board Automation Rules
+```bash
+# Require pull requests (no direct pushes) — minimum 1 reviewer
+az repos policy approver-count create \
+  --repository-id [repo_id] \
+  --branch <base-branch> \
+  --minimum-approver-count 1 \
+  --creator-vote-counts false \
+  --allow-downvotes false \
+  --reset-on-source-push true \
+  --blocking true --enabled true
 
-Azure Boards supports built-in automation rules:
+# Require linked work items on every PR
+az repos policy work-item-linking create \
+  --repository-id [repo_id] \
+  --branch <base-branch> \
+  --blocking true --enabled true
 
-**Auto-State Transitions**
-
+# Require a passing build (build validation policy)
+az repos policy build create \
+  --repository-id [repo_id] \
+  --branch <base-branch> \
+  --build-definition-id [pipeline_id] \
+  --display-name "CI" \
+  --manual-queue-only false \
+  --queue-on-source-update-only true \
+  --valid-duration 720 \
+  --blocking true --enabled true
 ```
-Rule: When a PR is merged for a PBI
-Action: Set PBI state to "Done"
+
+The work-item-linking policy is what makes traceability automatic: every merged PR carries its story, and `--transition-work-items` can close it.
+
+## Branch Workflow Automation
+
+Branch naming follows the pair [branch-template](../templates/branch-template.md), parametrized on `<base-branch>`:
+
+```bash
+# Create a branch from a work item (does not auto-link by name — see below)
+git checkout -b feature/#[story_id]-[short-description] <base-branch>
 ```
 
-**Auto-Assignment**
+Azure DevOps does **not** parse branch names for work-item IDs — naming a branch `feature/#123-...` does not, by itself, link it. Real linking mechanisms:
 
+- **"Create a branch" action on the work item** (UI or API) — links the created branch automatically
+- **Commit-message mentions** — `#[id]` (or `AB#[id]`) in a commit message, when the repository's "link commits to work items" setting is enabled
+- **PR description/title mentions** — `#[id]` links the same way
+- **Explicit linking on PR creation** — the reliable, scriptable path:
+
+```bash
+az repos pr create ... --work-items [story_id]
 ```
-Rule: When a work item is moved to "In Progress"
-Action: Assign to current user (if unassigned)
-```
 
-Configure via: Project Settings -> Boards -> Rules
+## Service Hooks
 
-### Development Workflow Automation
+Service hooks push Azure DevOps events to external systems (chat, incident tooling, custom endpoints): Project Settings → Service hooks.
 
-**Branch Policies**
+### Useful Subscriptions
 
-Configure via: Repos -> Branches -> Branch policies (on `main`):
-- Require a minimum number of reviewers
-- Check for linked work items
-- Build validation (run CI pipeline before merge)
-- Comment resolution required
+- **Work item updated** → team chat channel (state changes on P0 items)
+- **Pull request created / updated** → reviewer notification channel
+- **Build completed (failed)** → escalation channel
 
-**Azure Pipelines (CI/CD)**
+Service hooks are configured per project in the web UI or via the [Service Hooks REST API](https://learn.microsoft.com/rest/api/azure/devops/hooks/) — no `az` subcommand exists.
+
+## Minimal Pipeline Example
+
+A minimal `azure-pipelines.yml` sufficient for the build-validation branch policy above. It is intentionally a placeholder — tier-aware quality gates (lint depth, coverage thresholds, security scans) are defined in the [quality-assurance guidelines](../../quality-assurance/automated-verification.md), not here.
 
 ```yaml
-# azure-pipelines.yml - Example CI pipeline
 trigger:
   branches:
     include:
-      - main
-      - feature/*
+      - <base-branch>
+
+pr:
+  branches:
+    include:
+      - <base-branch>
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: ubuntu-latest
 
 steps:
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '20.x'
-  - script: npm install
-    displayName: 'Install dependencies'
-  - script: npm run lint
-    displayName: 'Run linter'
-  - script: npm test
-    displayName: 'Run tests'
-  - script: npm run build
-    displayName: 'Build project'
+  - checkout: self
+
+  - script: |
+      # install dependencies (adapt to your stack)
+      echo "install placeholder"
+    displayName: Install
+
+  - script: |
+      # lint / type-check / build — replace with the adopted quality gate commands
+      echo "quality gate placeholder"
+    displayName: Quality gates (see quality-assurance guidelines)
 ```
 
-**PR Build Validation**
+Register it once, then wire it to the branch policy:
 
-Configure via: Repos -> Branches -> Branch policies -> Build validation:
-- Trigger: Automatic on PR creation/update
-- Build pipeline: Select CI pipeline
-- Policy requirement: Required
-
-### Service Hooks
-
-Azure DevOps supports webhooks for external integrations:
-
-**Available Events**:
-- Work item created/updated/deleted
-- Pull request created/updated/merged
-- Build completed
-- Code pushed
-
-**Configure via**: Project Settings -> Service hooks
-
-**Common Integrations**:
-- Slack/Teams notifications
-- Custom webhook endpoints
-- Azure Functions triggers
-
-## Workflow Integration with pair
-
-### Automated Flow
-
-```
-Developer creates branch (feature/#STORY-ID-description)
-    |
-    v
-Developer commits with #STORY-ID in message
-    -> Auto-links commit to work item
-    |
-    v
-Developer creates PR via Azure CLI
-    -> Auto-links PR to work item
-    -> CI pipeline runs automatically
-    -> Required reviewers assigned
-    |
-    v
-Reviewer approves PR
-    -> PR can be completed (merged)
-    |
-    v
-PR merged (squash)
-    -> Source branch deleted
-    -> Work item state updated (if rules configured)
+```bash
+az pipelines create --name "CI" --repository <repository> \
+  --branch <base-branch> --yml-path azure-pipelines.yml
 ```
 
-### Recommended Automation Setup
+## Automation Principles
 
-1. **Branch policies on `main`**: Required reviewers, build validation, linked work items
-2. **CI Pipeline**: Lint, test, build on every PR
-3. **Board rules**: Auto-state transitions for PBI/Task
-4. **Service hooks**: Team notifications (Slack/Teams)
+- **Board rules mirror the state mapping** — never automate into unmapped columns
+- **Policies over conventions** — branch policies enforce what documentation only suggests
+- **Fallback to manual** — every automation must have a manual override path (`az boards work-item update`)
+- **Version control** — `azure-pipelines.yml` and policy definitions live in the repository
+
+## Troubleshooting
+
+### Common Issues
+
+- **PR completes but work item stays open**: `--transition-work-items` not passed, or the work item is not linked
+- **Build validation never triggers**: pipeline not registered on the right repository/branch, or `pr:` trigger missing in YAML
+- **Policy commands fail with 403**: PAT lacks Code (Read & Write) or project administration scope
 
 ## Related Topics
 
-- [Azure DevOps Implementation](../project-management-tool/azure-devops-implementation.md) - CLI commands and setup
-- [Azure DevOps Tracking](../project-tracking/azure-devops-tracking.md) - Board setup and metrics
-- [Azure DevOps Issues](../issue-management/azure-devops-issues.md) - Work item management
+- **[../issue-management/azure-devops-issues.md](../issue-management/azure-devops-issues.md)** - Work item workflows being automated
+- **[../project-tracking/azure-devops-tracking.md](../project-tracking/azure-devops-tracking.md)** - Tracking and reporting on automated flows
+- **[../project-management-tool/azure-devops-implementation.md](../project-management-tool/azure-devops-implementation.md)** - Tool setup and CLI prerequisites
+- **[../../quality-assurance/automated-verification.md](../../quality-assurance/automated-verification.md)** - Quality gate definitions (linked, not duplicated here)

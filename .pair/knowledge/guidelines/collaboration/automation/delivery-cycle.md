@@ -1,0 +1,334 @@
+# The Delivery Cycle — one state machine, N realizations
+
+The map of the whole automation mechanism: what the delivery cycle is, how each stage works, which realization runs it, how it is configured, and how unattended work flows through it.
+
+**This page is a map, not a second copy of the territory.** Exact argument names, refusal identifiers, schema fields and script paths live in the owning skill, script or guideline and are linked from here, so a change there cannot leave this page stale on that fact. Where this page and an owner disagree, the owner wins and this page is the bug.
+
+## Contents
+
+1. [The cycle and its authority](#1-the-cycle-and-its-authority)
+2. [The stages, one by one](#2-the-stages-one-by-one)
+3. [Three realizations, and which to use](#3-three-realizations-and-which-to-use)
+4. [Profiles — engine, model, effort, context per stage](#4-profiles--engine-model-effort-context-per-stage)
+5. [Cycle Hooks](#5-cycle-hooks)
+6. [The `merge` stage and `## Auto-Advance`](#6-the-merge-stage-and--auto-advance)
+7. [Host adapters — PM tool and code host](#7-host-adapters--pm-tool-and-code-host)
+8. [Automation as one whole](#8-automation-as-one-whole)
+9. [Timeouts, stalls and retries by surface](#9-timeouts-stalls-and-retries-by-surface)
+10. [Where to go next](#10-where-to-go-next)
+
+## 1. The cycle and its authority
+
+A **delivery cycle** drives ONE card to a review-approved pull request, and optionally to a merge. It is a state machine with two entries and two stage sequences:
+
+| Entry | Sequence | Notes |
+| --- | --- | --- |
+| **Fresh card** — refined, no PR yet | `implement → verify → merge` | Tests and code are written together, test-first, inside `implement`; the independent `verify` judges the result qualitatively, per acceptance criterion. There is no up-front contract. |
+| **Review finding** — a PR with blocking findings | `prepare → validate → green → verify` | One remediation round per group of findings: its failing test first, written by someone who is not the fixer, sealed by an independent validator, then fixed. |
+| **Existing PR** — fix & review | enters at `verify`, then the finding sequence | The card's preparation state is not consulted: a card with a PR has started. |
+
+![The delivery cycle: both entries, the remediation loop, terminal states and the human decision points](diagrams/cycle-overview.svg)
+
+**One rule authority.** `cycle-state.mjs` alone decides what is due: stage order, retry budgets, round caps, resume after an interruption, and per-stage context freshness. Every realization asks it "what is next?", dispatches exactly that stage, forgets everything but the answer, and asks again. No coordinator, skill or driver holds a cycle rule of its own — which is why the three realizations in [section 3](#3-three-realizations-and-which-to-use) behave identically.
+
+**State is files, not memory.** Each stage publishes a *handoff* under the run directory; the next question is answered from those files. A cycle interrupted at any point resumes from its first incomplete stage.
+
+**Independence is structural.** The agent that implements never reviews; the agent that writes a finding's failing test is never its fixer; the validator never repairs. Only independent review activities are recorded as evidence.
+
+Operational detail: the [`pair-workflow-cycle` skill](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/cycle/SKILL.md) (in-session coordinator, [#486](https://github.com/foomakers/pair/issues/486)), the [`cycle-state.mjs` script](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/cycle/scripts/cycle-state.mjs), and the `merge` stage ([#490](https://github.com/foomakers/pair/issues/490)) in [section 6](#6-the-merge-stage-and--auto-advance). The design is recorded in [ADR-024](https://github.com/foomakers/pair/blob/main/.pair/adoption/tech/adr/adr-024-delivery-phases-are-skills.md).
+
+## 2. The stages, one by one
+
+Every stage is a *skill* run by one *role*. `cycle-state.mjs` also decides whether the stage gets a **fresh** agent (the default) or **resumes** the previous agent of the same role (`reuse`); resuming is admitted only inside one role, never into `validate` or `verify`, whose whole value is independence.
+
+| Stage | Role | Skill |
+| --- | --- | --- |
+| `implement` | implementer | [`pair-workflow-implement-phase`](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/implement-phase/SKILL.md) |
+| `verify` | reviewer | [`pair-workflow-review-phase`](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/review-phase/SKILL.md) |
+| `prepare` | test author | [`pair-workflow-red-spec`](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/red-spec/SKILL.md) |
+| `validate` | contract validator | [`pair-workflow-red-verify`](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/red-verify/SKILL.md) |
+| `green` | implementer (fixer) | [`pair-workflow-green-fix`](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/green-fix/SKILL.md) |
+| `merge` | none — a script | [`cycle-merge.mjs`](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/cycle/scripts/cycle-merge.mjs) |
+
+Each subsection below says what the stage is for, who runs it, what it reads and produces, when it is skipped, and how it ends. The *what and why* is here; the argument lists are in the skills.
+
+### `implement`
+
+![implement: resolve state, test and code per AC, self-review, gates, one PR](diagrams/phase-implement.svg)
+
+- **For**: turning a refined card into verified commits and exactly one PR, written test-first — for each acceptance criterion a test that would fail without the behavior, then the code.
+- **Who / context**: the implementer, `fresh`.
+- **Reads → produces**: the card and the base branch → commits in the story worktree, a checkpoint, the PR (created or updated, never duplicated), and the stage handoff.
+- **Self-review**: the implementer reviews its own diff against the acceptance criteria and fixes what it finds — and records nothing of it, so the verifier judges the result without the author's conclusions in front of it.
+- **External ACs**: an AC needing live external verification the stage cannot run (a real release) is listed in the PR body and the result as `external — pending live verification`, so the coordinator knows before review.
+- **Skipped when**: a PR already exists for the card (the cycle enters at `verify`).
+- **Ends**: success — handoff published, next is `verify`; a red gate still publishes the PR and routes one retry on the same base; a second red gate stops the cycle.
+
+### `verify`
+
+![verify: pin the head, custody and evidence, review passes, verdict bound to the head](diagrams/phase-verify.svg)
+
+- **For**: an independent judgment of one exact PR head — that the sealed evidence is intact, that every acceptance criterion has a test proving it, that prior findings are resolved, and that the adopted risk-tier passes find nothing blocking.
+- **Who / context**: the reviewer, always `fresh`, read-only on code. It sees the card, the PR and the code — never the implementer's checkpoint.
+- **Reads → produces**: PR head, card, handoffs → one review with stable finding ids, a verdict and the head it reviewed, published idempotently.
+- **Skipped when**: never. Every path to a merge or a ready PR passes through it, and a moved head needs a new one.
+- **Ends**: approved — the cycle advances to `merge` (or stops ready-for-merge); blocking findings at or above the project's floor — a remediation round starts at `prepare`; a finding only a human can settle — `escalate`.
+
+### `prepare`
+
+![prepare: findings to inventory to red tests, written by a non-fixer](diagrams/phase-prepare.svg)
+
+- **For**: turning each blocking finding into an executable acceptance contract — a failing test that proves the finding at the unfixed head, plus controls that must keep passing — before anyone touches production code.
+- **Who / context**: the test author, `fresh` on the first round and eligible to `reuse` itself across rounds. It writes tests and fixtures only, and is never the fixer.
+- **Reads → produces**: the findings of the last `verify` → test files and the contract handed to `validate`.
+- **Skipped when**: a fresh card with no findings; the cycle never starts here without a review having found something.
+- **Ends**: a contract ready for `validate`; or a typed refusal (the finding cannot be proven, must be split, is stale) that stops or escalates the group.
+
+### `validate`
+
+![validate: reproduce every witness, then seal or reject with all gaps](diagrams/phase-validate.svg)
+
+- **For**: an independent check that the contract really discriminates — each witness fails at the unfixed head for the intended defect, each control may pass — and a deterministic **seal**: the tests become an immutable snapshot commit the fixer cannot alter.
+- **Who / context**: the contract validator, always `fresh`. It never repairs a contract.
+- **Reads → produces**: the contract and the base → either one typed rejection listing every gap found, or a sealed snapshot.
+- **Skipped when**: never inside a round — it is the gate between `prepare` and `green`.
+- **Ends**: sealed — next is `green`; rejected — back to `prepare` for a bounded number of repairs, then the cycle stops.
+
+### `green`
+
+![green: find the seal, fix inside the allowed scope, witnesses and gates, update the PR](diagrams/phase-green.svg)
+
+- **For**: making the sealed tests pass by changing production code only inside the contract's allowed scope, then updating the existing PR.
+- **Who / context**: the implementer as fixer, `fresh` or resumed within its own role. A sealed test is untouchable: a gap in the contract is reported, never patched around.
+- **Reads → produces**: the seal (discovered from Git, never trusted from a prompt) → commits above the seal, the updated PR, an evidence ledger.
+- **Skipped when**: never inside a round.
+- **Ends**: success — next is `verify`; an approved test that still fails — one retry on the SAME seal; a fixer that needs a human decision posts its escalation itself.
+
+### `merge`
+
+![merge: opted in, re-read signals, merge and close or park](diagrams/phase-merge.svg)
+
+- **For**: executing the merge of a review-approved PR, only when the project opted in. Detail in [section 6](#6-the-merge-stage-and--auto-advance).
+- **Who / context**: nobody — it is a script, not an agent dispatch.
+- **Reads → produces**: freshly re-read signals → a merge and a closed story, or a *park* with a comment on the card naming the failing signal.
+- **Skipped when**: the project did not opt in (the default) — the cycle stops `ready-for-merge` and a human merges.
+- **Ends**: merged, merged with closure unfinished, or parked.
+
+### Where a human decides
+
+The cycle never decides these for itself: `decide` records a maintainer's answer to a finding that needs one (the cycle leaves `escalate` without re-running anything); `supersede` sets aside an unvalidated attempt so the stage can be redone; the explicit approval of a high-risk PR (`/approve`) is a recorded human act the `merge` stage requires. The recovery paths, including a stale card lock and custody after a base merge, are in the [`pair-workflow-cycle` skill](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/cycle/SKILL.md).
+
+### Auto-recovery
+
+A failure whose cause is gone, or mechanical, is not a reason to park a card. The rules live in `cycle-state.mjs` (the run directory's `recovery.json`, beside the handoffs) and `pair-cli run` drives them; owners: [`cycle-state.mjs`](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/cycle/scripts/cycle-state.mjs), [`red-snapshot.mjs`](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/review-phase/scripts/red-snapshot.mjs).
+
+- **Stale failures**: `failed-preparation`, `failed-implement` and `failed-custody` are keyed by the PR head and the base head they were first observed on (`resolve --head --baseHead`). Once either moved, the failure is stale: `resolve` re-derives the step (one more attempt; a re-verification for custody) and the verdict sticks for that handoff. The same keys keep it durable; no heads (a legacy caller) keep today's behaviour.
+- **A moved PR head**: a terminal review whose `reviewedHead` is not the current PR head is re-verified (`verify`, `re-review`), except a review waiting on a human decision.
+- **Merge-time gate**: a red tier gate is re-run once on the same reviewed head, after the adopted `worktree-setup-command` ran in the story worktree (a failing setup spends the round, its error kept); `merge-gate.json` names every gate with its last error lines. Still red ⇒ the approved card goes back to the fix stage with the failing gates as findings — never an exit.
+- **Base sync**: a story branch that conflicts with its base is merged mechanically (`cycle-state.mjs base-sync`): story-owned paths keep the story's bytes, base-owned ones take the base's, a generated mirror takes the side its dataset source took, and the merge commit records it as `Pair-Base-Sync: base=…; ours=…; theirs=…`. Custody checks that record; a hand-resolved merge still fails custody, its breach naming the fix. A conflict on a sealed test is never resolved: `needs-human`.
+- **CI**: a failed external CI run is re-run once (`gh run rerun --failed`) before it counts; later re-runs spend the budget. CI still red after that is a real failure: its failing checks (with the failed-step log tail) become findings for the fix stage, exactly like a red merge-time gate — never a park for a human.
+- **Prerequisites**: a card's prerequisites come from `cycle-state.mjs prereq-state` through the PM adapter (merged only when closed as completed; any other closure — not planned, duplicate, no reason — blocks as `closed not merged`; `needs-review` ⇒ parked), never from an agent; an unreadable state blocks (fail closed). A blocked card is reported `blocked by #<id> (<reason>)` and selected again on a later iteration.
+- **Dirty story worktree**: a preparation refused because the story worktree holds files no attempt owns (a killed probe's leftovers) is not a park. `pair-cli run` stashes them (`git stash push --include-untracked`, message `pair-recovery: …` — kept, never deleted), spends one `autoRecoveryRounds` round (`recover --kind worktree-clean`) and `resolve` treats the refusal as stale.
+- **Contract gap at GREEN**: a fix that cannot pass inside its `fixScope` (a gate rejects a path the contract does not own, e.g. a new test file the install exclusion list must name) is not a stop: `green-fix` publishes `fixed: false` with `contractGaps`, and `resolve` routes a revision of that group's contract (`<group>-rev<n>`), exactly as a reviewer's `contract-gap` finding.
+- **Seal not pushed**: a validation that sealed but could not push the seal (`seal-not-pushed`: a pre-push hook or the network failed) is not a stop. `pair-cli run` spends one `autoRecoveryRounds` round (`recover --kind stage-retry`) and dispatches the same validation again; `red-snapshot.mjs seal` and `push` are idempotent.
+- **The loop**: a card the `--watch` loop excluded as a durable failure is driven again once the base head moved; `cycle-state` decides whether the failure is stale.
+- **Budgets**: `autoRecoveryRounds` (default 5) and `maxFixRounds` (default 10), `## Autonomy` keys ([automation-policy.md](automation-policy.md)). `autoRecoveryRounds` bounds recovery without progress: a round counts only after the newest step handoff (a phase's first handoff; `.attempt-N` retries are not progress), so a card that keeps advancing is never parked by an earlier step's rounds. Spent ⇒ `needs-human: <reason>`, in the console and the audit; the run continues with the other cards. A new run lists the exclusions of earlier runs (`excluded: <id> (<reason>, run <id>, <date>)`) and drives them again — re-evaluated, never inherited.
+
+Recovery never bypasses a merge condition: `pair-review` success on the reviewed head, green CI, the green tier gate set and custody on sealed bytes stay mandatory, and nothing outside the fix scope is edited.
+
+## 3. Three realizations, and which to use
+
+One cycle, three ways to turn its crank. They differ in *who dispatches the stages*, never in what the rules are.
+
+| Realization | Entry point | Dispatches stages with | Story |
+| --- | --- | --- | --- |
+| **In-session coordinator** | the [`pair-workflow-cycle` skill](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/cycle/SKILL.md) in Claude Code, Codex, or pi with `pi-subagents` | the session's own subagent primitive | [#486](https://github.com/foomakers/pair/issues/486) |
+| **Console driver** | [`pair-cli run`](https://github.com/foomakers/pair/blob/main/apps/website/content/docs/reference/cli/commands.mdx) | one fresh engine process per stage — `pi`, `opencode`, `claude`, `codex`, whatever is on PATH | [#487](https://github.com/foomakers/pair/issues/487) |
+| **Claude parallel batch** | the `pair-implement-batch` workflow, driven by `pair-loop` ([batch engine](https://github.com/foomakers/pair/blob/main/apps/website/content/docs/reference/batch-engine.mdx)) | the Claude Workflow tool, N cards at once | [#479](https://github.com/foomakers/pair/issues/479) |
+
+**Choosing** — three questions, in order:
+
+1. **Are you in a harness with a subagent primitive, working one card with a human nearby?** Use the in-session coordinator. It binds the primitive by probing the toolset, not by product name, and refuses cleanly when none is present — the console driver is then the fallback.
+2. **Is there no interactive session — a shell, cron, CI, a daemon — or do you want an engine the session cannot be?** Use the console driver. It works on any engine and has no dependency on a vendor's orchestration tool. `--parallel N` is its fan-out ([#491](https://github.com/foomakers/pair/issues/491)): one `pair-cli run --card` process per allowed card, bounded by dependencies, the mutex analysis and `## Max Parallelism`, with one card failing never aborting the others.
+3. **Are you on Claude Code and want a whole epic's cards in parallel with the orchestration inside the session?** Use the Claude parallel batch. Elsewhere the same work is the console driver's fan-out.
+
+The in-session coordinator and the console driver run the cycle's hooks and profiles; the Claude batch runs no cycle hook ([section 5](#5-cycle-hooks)). The console driver and the loop also re-select cards over time, which a one-card in-session run does not.
+
+Links out for the mechanics: the [`pair-cli run` reference](https://github.com/foomakers/pair/blob/main/apps/website/content/docs/reference/cli/commands.mdx), the [`pair-loop` skill](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/loop/SKILL.md), and the [Max Parallelism section](automation-policy.md#max-parallelism--the-parallel-batch-ceiling) for the ceiling.
+
+## 4. Profiles — engine, model, effort, context per stage
+
+A **workflow profile** declares which engine, model, effort and context policy each stage uses — a cheap model with a resumed session for `prepare` and `green`, a frontier model with a fresh session for `validate` and `verify` — without touching any skill or script. The schema, the cascade, the model classes and the refusals are owned by [workflow-profiles.md](workflow-profiles.md) ([#488](https://github.com/foomakers/pair/issues/488)); both coordinators resolve it through one resolver.
+
+**Shape** (abridged — the full field table is in the owner):
+
+```json
+{
+  "name": "cheap-green",
+  "defaults": { "engine": "claude", "model": "by-tier", "effort": "medium", "context": "fresh" },
+  "modelClasses": { "cheap": "<cheap-model-id>", "balanced": "<balanced-model-id>", "frontier": "<frontier-model-id>" },
+  "stages": {
+    "prepare": { "model": "cheap", "context": "reuse" },
+    "validate": { "model": "frontier" },
+    "green": { "model": "cheap", "context": "reuse" },
+    "verify": { "model": "frontier", "effort": "high" }
+  }
+}
+```
+
+**Cascade** — resolved once per run, highest first:
+
+1. an external workflow-config file, used verbatim;
+2. a named profile passed for this invocation;
+3. the project's declared default profile in `pair.config.json`;
+4. the KB default — the engine's own model, default effort, `fresh` on every stage.
+
+Within a profile, a stage entry overrides only the fields it declares, then `defaults`, then the KB default. With nothing configured, the cycle runs exactly as it did before profiles existed.
+
+**Worked mixed-model example.** The profile above runs the work that needs breadth at low cost and the work that needs independence at high capability:
+
+| Stage | Model | Context | Why |
+| --- | --- | --- | --- |
+| `implement` | `by-tier` (from the card's `risk:*`) | fresh | cost follows risk |
+| `prepare` | cheap | reuse | writing tests from findings is mechanical; resuming keeps what the author learned |
+| `validate` | frontier | fresh | the independent check is the cycle's quality gate |
+| `green` | cheap | reuse | the fix is bounded by the sealed tests |
+| `verify` | frontier, high effort | fresh | the final judgment is what a human relies on |
+
+Because `prepare` and `validate` apply to remediation rounds only, a profile must not assume every stage runs on every card — a fresh card runs `implement` and `verify` first.
+
+**`context` is validated, not trusted.** A stage entry asking `reuse` into a stage where the cycle's transition table forbids it — `validate` and `verify` above all — is rejected at load, never accepted and silently overridden at dispatch. The table is `cycle-state.mjs`'s ([the rule is in workflow-profiles.md](workflow-profiles.md#context-is-validated-against-the-cycles-transition-table)).
+
+**Audit, not input.** The resolved profile's name and content hash are recorded in every handoff but excluded from the inputs that invalidate evidence: swapping a profile between invocations re-validates nothing.
+
+## 5. Cycle Hooks
+
+`## Cycle Hooks` in `tech/automation.md` declares deterministic commands around the cycle — fail fast on a bad toolchain, realign generated mirrors before a stage, notify on an outcome, alert on a stop ([#489](https://github.com/foomakers/pair/issues/489)). The schema, the per-command timeout, hook-name rules and the fail-safe default are owned by [automation-policy.md](automation-policy.md#cycle-hooks--deterministic-commands-around-the-delivery-cycle).
+
+The hooks are executed by the **coordinator** — the in-session skill or the console driver — never by the stage's own agent, through one shared executor, so the two cannot drift. The Claude parallel batch has no shell and runs none.
+
+**Blocking vs logging — the distinction that matters:**
+
+| Kind | Hook names | A non-zero exit |
+| --- | --- | --- |
+| **Blocking** | `pre-<stage>`, `pre-cycle` | **stops the cycle** before the stage runs; the command's own output is reported verbatim |
+| **Logging** | `post-<stage>`, `post-cycle`, `on-halt` | **is logged, never a stop** — the stage already happened, remaining commands still run |
+
+**Every hook point and its typical use:**
+
+| Hook point | Typical use |
+| --- | --- |
+| `pre-cycle` | check the toolchain, fail fast on a dirty environment (runs in the main checkout, never in a story tree) |
+| `pre-prepare`, `pre-validate` | fetch/refresh fixtures the contract stages read |
+| `pre-implement` | install dependencies, realign the generated mirrors, start a local service the tests need — all in the story worktree |
+| `pre-green` | same as `pre-implement`, for a remediation round |
+| `pre-verify` | an external gate the verifier must find green (a build) — blocks `verify` on failure |
+| `pre-merge` | a last local check before an automatic merge — blocks the merge on failure |
+| `post-<stage-id>` | notifications, metrics, audit lines — anything whose failure must not stop the cycle |
+| `post-cycle` | notify the outcome, clean up what `pre-cycle` created |
+| `on-halt` | alert a human: the deterministic notification point for every failure path |
+
+Stage hooks run in the **story worktree**, the tree the stage works on; cycle-level hooks run in the **main checkout**. A hook name is a pattern over the stage ids `cycle-state.mjs` enumerates, so a stage added later gets its hooks with no schema change; a typo is a warning at load, not a stop.
+
+## 6. The `merge` stage and `## Auto-Advance`
+
+The `merge` stage ([#490](https://github.com/foomakers/pair/issues/490)) is the cycle's last, and it is **opt-in per project**. A review-approved PR stops *ready-for-merge* and a human merges it — that is the default, and it is the fail-closed posture.
+
+**The default is no automatic merge.** `## Auto-Advance` absent, or exactly `(none)`, means nothing merges unattended on any tier. A maintainer opts in by naming, in that section, the one risk tier the project's `## Eligibility` already declares. The same decision can be written in the newer `## Autonomy` declaration, which translates the legacy section ([Autonomy](automation-policy.md#autonomy--selection-target-and-gates-us-521-adr-027)); the legacy section keeps working.
+
+**What the stage re-verifies, on freshly read signals, before any merge** — the conjunction that *is* the merge-allowed synthesis ([pr-states.md](../project-management-tool/pr-states.md)):
+
+- the card's risk tier, re-read (a mid-run raise parks the card);
+- the PR's current remote head is identical to the head that was reviewed (a moved head is never merged);
+- the `pair-review` check is `success` on that head;
+- the `pair-explicit-approval` check is `success` on that head (below the highest-risk tier it passes by itself; at that tier it requires a recorded human approval);
+- every OTHER CI check on that head (check runs and commit statuses, read through the code-host adapter) is `success` — a failed one refuses the merge (`ci-not-green`, halted), a still-running one is WAITED for (`ciPending`: `pair-cli run` and the in-session cycle poll the check every 30 s, 30-minute cap, `PAIR_CI_WAIT_INTERVAL_SECONDS` / `PAIR_CI_WAIT_CAP_SECONDS`, cap `0` = never wait) and the check re-run once the checks settle; still pending after the cap parks it awaiting the build (the Claude Code workflow sandbox cannot sleep and parks at once);
+- the tier's gate set is green.
+
+**Post-merge branch cleanup (`closeStory`).** The head branch is deleted through the code-host API, never `git push --delete` (that triggers the local pre-push quality gate). A head branch outside the strict ref grammar (`^[A-Za-z0-9._/-]+$`, e.g. `feature/#262-x`, a valid git ref the older implement skill produced; the template name is `feature/US-<n>-<slug>`) is never handed to git or an adapter: the closure reports `branch-cleanup-manual` with the exact command, e.g. `gh api -X DELETE 'repos/<owner>/<repo>/git/refs/heads/feature/%23262-x'` (`#` encoded). Do not rename the branch instead: renaming a PR's head branch closes the PR.
+
+Anything unreadable, moved or not `success` **parks** the card with the failing item named — it is never merged. On success the merge follows merge-and-cascade: the adopted strategy, story close, parent cascade with read-back, branch deletion.
+
+**Relationship to the other declarations.** `## Auto-Advance` answers *which tiers may merge unattended*; it is a switch, never a gate list, and it does not restate what "green" means — that is the quality model's per-tier table. The `merge` stage *enacts* it. Every realization reaches the stage through the same script, so the rule has one owner and `pair-loop` itself holds no merge call. Detail: the [Auto-Advance](automation-policy.md#auto-advance--which-tiers-may-pushmerge-unattended) and [Autonomy](automation-policy.md#autonomy--selection-target-and-gates-us-521-adr-027) sections.
+
+## 7. Host adapters — PM tool and code host
+
+The cycle scripts never call a host CLI themselves: they call the **adapter** the project's `way-of-working.md` binds, so every host-specific spelling — binary, arguments, URL shape, label and check vocabulary — lives in one file ([#492](https://github.com/foomakers/pair/issues/492), [ADR-026](https://github.com/foomakers/pair/blob/main/.pair/adoption/tech/adr/adr-026-pm-code-host-adapter-interface.md)). The PM tool (cards) and the code host (pull requests) are resolved independently.
+
+**The interface is eight methods:**
+
+| Method | Side | For |
+| --- | --- | --- |
+| `readCard` | PM tool | read a card's text and fields |
+| `cardHash` | PM tool | derived from `readCard` by the kit — never written by an adapter |
+| `prHead` | code host | the PR head as a 40-hex sha |
+| `upsertComment` | code host | create or update a marker-keyed comment, idempotently |
+| `concludeCheck` | code host | publish a check conclusion on a given sha |
+| `setPrState` | code host | leave exactly one PR-state label |
+| `merge` | code host | merge pinned to the reviewed head |
+| `closeAndCascade` | PM tool | close the card and every parent whose children are all done |
+
+A further optional set of primitives serves scope decisions and state lookups; omitting one fails only the feature that needs it, typed, naming the method.
+
+**Shipped adapters**: **GitHub** and **Azure DevOps**. A filesystem host is the extension guide's worked example.
+
+**Adding a host** is one new file plus one declaration — never an edit to an existing adapter or to `cycle-state.mjs`. The validated step-by-step guide, including the file layout and the checks an adapter must pass, is the [Host Adapter Extension Guide](../project-management-tool/host-adapter-extension-guide.md). Credentials are never read, stored or printed by an adapter: the host CLI authenticates itself.
+
+## 8. Automation as one whole
+
+*Unattended* work is the cycle plus five things around it: a trigger, a dispatch, gates, safety rails, and a way out.
+
+![Unattended work: trigger, host adapter, dispatch, gates, rails, the cycle, and the way out](diagrams/automation-flow.svg)
+
+1. **The trigger.** A tracker event — a label added to a card — reaches the **host adapter**, the thin per-host piece that holds the credentials the trigger runs under. It calls the dispatcher; it carries no cycle rule. See [github-automation.md](github-automation.md) and [#492](https://github.com/foomakers/pair/issues/492).
+2. **The dispatch.** The console driver (or `pair-loop`) reads `tech/automation.md` and maps the card's tags through `## Workflows` ([automation-policy.md](automation-policy.md#workflows--which-workflow-each-tag-routes-to)). A tag is an opaque routing key; **an untagged card is never routed by tag**. With no mapping, the card's own Definition of Ready decides: a Ready card with a task breakdown enters the cycle, a card with a PR enters at `verify`.
+3. **The gates.** `## Eligibility` bounds `--autonomous` runs — a card without the declared label is skipped as ineligible, and `--approve-ineligible` lets exactly one run through. Unattended runs never start a preparation skill unless the `prepare` gate says so (`hold-always` by default: a human prepares). A card that cannot be read is a clean skip.
+4. **The safety rails.** An exclusive **per-card lock** (no timeout; SIGTERM and SIGINT release it, so re-running the same command continues the run); an **audit trail** — `start`, `skip`, `end`, with the start also printed as a `DISPATCH-RECORD:` line the adapter can post on the card; the **dispatch cap**; and `## Max Parallelism` as the ceiling on fan-out. An escalation condition in `## Autonomy` stops the cycle with one marker-keyed comment on the card.
+5. **The way out.** `## Auto-Advance` / `## Autonomy` and the `merge` stage ([section 6](#6-the-merge-stage-and--auto-advance)). By default the run ends *ready-for-merge* and the merge stays a human decision.
+
+**A reader can predict any card's outcome** by walking these in order: is it mapped or Ready? eligible? unlocked? does a prepare or escalation condition fire? has the project opted into merge for its tier?
+
+### Worked example — a label to a PR ready for merge, no one present
+
+Setup: `## Workflows` maps `auto-dev` to the cycle, `## Eligibility` is `risk:green`, `## Auto-Advance` is `(none)`. Card 123 is Ready, has a task breakdown, and carries `risk:green`.
+
+| # | What happens | Printed / recorded |
+| --- | --- | --- |
+| 1 | A maintainer adds `auto-dev` to card 123. The host adapter fires. | the adapter's own job log |
+| 2 | The dispatcher reads `automation.md`, matches `auto-dev`, checks eligibility and the card lock. | audit `start` + the `DISPATCH-RECORD:` line, posted on the card |
+| 3 | `implement` writes tests and code, opens PR 456. | a handoff; the PR body |
+| 4 | `verify` reviews the exact head. | one review on the PR; the `pair-review` check |
+| 5 | Blocking findings? A remediation round runs `prepare → validate → green → verify` until clean or the budget is spent. | one handoff per stage |
+| 6 | Approved, `## Auto-Advance` is `(none)` ⇒ no `merge` stage. | audit `end`; status *ready-for-merge* |
+| 7 | A human merges PR 456. | — |
+
+Had `## Auto-Advance` named `risk:green`, step 6 would have run the `merge` stage: re-read the signals, merge pinned to the reviewed head, close the story and cascade to its parent — or park with a comment naming the signal that failed.
+
+The mechanics of every step are in the owner links of sections 1–7; the walk-through as a hands-on tutorial is on the docs site ([Unattended Delivery](https://github.com/foomakers/pair/blob/main/apps/website/content/docs/tutorials/unattended-delivery.mdx)).
+
+## 9. Timeouts, stalls and retries by surface
+
+What bounds a stage that hangs, and what is retried, differs by *who drives the cycle*. The rules of the cycle never change; the enforcement does. Single owner of this table — other pages link here.
+
+| Surface | What bounds a hang | What happens next |
+| --- | --- | --- |
+| **`pair-cli run`** (console driver, tier 2) | One **idle** watchdog per engine process (US-573): no engine event for `--idle-timeout <seconds>` (default `1800`; else `## Stop Predicate` `idle-timeout:`, else `pair.config.json` `engine.idleTimeout`) ⇒ the engine gets `SIGTERM`; every decoded event resets it. `--iteration-timeout <seconds>` is an opt-in **total** cap with no default. Both cover every cycle stage, every `run --skill` iteration **and the loop's `pair-next` selection process**. A stopped engine is reported `stalled` / `timed out (idle) at <card>/<stage>` (a terminal event already read keeps its outcome), and the run exits `1`. | A stalled **stage** is re-dispatched fresh, sharing the dead-dispatch budget `policy.deadDispatchRetries` (default `1`, read from `cycle-state`); the next unadvanced handoff ends the cycle `failed-<stage>`. A stalled or failed **selection** stops the loop `selection failed` (exit `1`) and is never retried. |
+| **`pair-cli run --parallel` / `--watch`** (the loop) | The same watchdog per child `run --card`, plus the per-card lock (no timeout of its own). | **Transient** failures are retried: a child that crashed, was killed, or never reported a cycle status (engine/API error) is retried within the per-run **retry budget** (default `1`, printed in the loop header and audited). A **durable** terminal — a reported `failed-contract` or any `failed-*`, `escalate` (a human decision is owed), or `needs-human` (a [recovery budget](#auto-recovery) is spent) — is reported with its reason and excluded for the run, never retried; the next run lists it and re-evaluates it. An `escalated` card (an autonomy gate fired) is not durable: it is skipped until its escalation is cleared, then re-picked. A lock whose holder pid is dead on this host (a SIGKILLed driver) is a **stale lock**: reclaimed and audited `lock-reclaimed`; a live holder is respected (`locked by pid P (alive)`). |
+| **In-session `/pair-workflow-cycle`** (any harness) | The coordinator enforces it, not a process: **Step 4** of the skill — a stage that is still running but makes no progress for its time bound is a stall. | Resume it once on the same subagent (or re-dispatch the same prompt fresh where resume is unavailable), within the same `deadDispatchRetries` budget as a dead dispatch; then `failed-<step>`. A stage may never leave a command in the background or end its turn on one ([headless stage execution](../../technical-standards/ai-development/skill-conventions/headless-stage-execution.md)). |
+| **Claude Code Workflows** (`pair-loop`, `pair-implement-batch`, `pair-refine-batch`, `pair-analyze-pr-batch`) | The runtime's `agent()` has no timeout option, so each call races a timer: `args.agentTimeoutMinutes` (default 30 minutes, aligned with the 1800 s of `pair-cli`) when the sandbox exposes `setTimeout`; where it does not, the call is unbounded and the limit cannot be enforced. | A selection that times out is retried once, then the run ends `failed: true, reason: "selection failed: timeout after <n>m"`; any other `pair-loop` stage that times out fails the run naming the stage; a `pair-implement-batch` stage agent that times out is NOT retried — the runtime cannot cancel it, so it may still be writing to the worktree and a retry would be a second writer: the stage ends `failed-<step>` with `timed out after <n>m — the agent may still be running; human check required`, and a human must check the worktree before re-running; a `pair-refine-batch` / `pair-analyze-pr-batch` stage that times out is likewise NOT retried — the card / PR lands in `failed` (a timed-out verify / freshness stage, after the writer already posted, leaves it `unverified`). The loop retries only transient failures and keeps no cross-run halt memory beyond the card's current durable state. |
+| **`/pair-loop` in other coding agents** | No loop runs there: the skill drives exactly **one** eligible card per invocation and prints a continue-token; the caller re-invokes it. | Unattended multi-card delivery on those agents is the console driver (first row). |
+
+**Handoff format errors are validated, then retried once.** A stage whose handoff or result fails the coordinator's format validation (not JSON, a missing envelope or stage field, a malformed finding, an unusable `next`) does not halt the card at the first defect: `pair-cli run` (a stage whose publish was refused for such a reason; the `run --skill` loop iteration; the `--root` / `--watch` selection answer) and the workflows (`pair-implement-batch` stage results, `pair-loop` selection) re-dispatch the same step once, with the exact validation error in the prompt. A second failure escalates exactly as before; a deliberate stop (a decision, a red gate) is never retried.
+
+## 10. Where to go next
+
+| You want to… | Read |
+| --- | --- |
+| run one card in your session | the [`pair-workflow-cycle` skill](https://github.com/foomakers/pair/blob/main/packages/knowledge-hub/dataset/.skills/workflow/cycle/SKILL.md) |
+| run from a shell or cron, or fan out | the `pair-cli run` section of the [CLI reference](https://github.com/foomakers/pair/blob/main/apps/website/content/docs/reference/cli/commands.mdx) |
+| choose models per stage | [workflow-profiles.md](workflow-profiles.md) |
+| declare eligibility, workflows, merge, hooks, caps | [automation-policy.md](automation-policy.md) |
+| wire GitHub triggers | [github-automation.md](github-automation.md) |
+| add a PM tool or code host | [Host Adapter Extension Guide](../project-management-tool/host-adapter-extension-guide.md) |
+
+Known limitation: a link check catches a broken anchor, not a semantic change in a linked owner. If an owner's behavior changes shape, this page is updated in the same change.

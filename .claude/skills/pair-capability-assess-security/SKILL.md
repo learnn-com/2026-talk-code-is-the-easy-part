@@ -1,200 +1,168 @@
 ---
 name: pair-capability-assess-security
-description: "Assess security posture using resolution cascade (Argument > Adoption > Assessment). Reads security guidelines and package-level .pair.security.md files, identifies gaps, proposes controls, writes adoption file, composes /pair-capability-record-decision. Idempotent."
-version: 0.1.0
-author: Learnn
+description: "Assesses security posture against resolved rules (KB global + per-service + per-web-app + adoption project rules): `$mode: review` — composed by /pair-process-review to produce a 1-line verdict + collapsed findings feeding the risk matrix's security dimension (D22), CHANGES-REQUESTED on vulnerabilities the PR introduces; `$mode: audit` — one-shot codebase scan against OWASP Top 10, writes a report to .pair/working/reports/security/ and proposes project rules for /pair-capability-record-decision to persist. Deterministic secret-scanning is a separate CI layer (see /pair-capability-setup-gates) — this skill never scans for committed secrets itself (D24)."
+version: 0.3.0
+author: Foomakers
 ---
 
 # /pair-capability-assess-security — Security Assessment
 
-Evaluate and document the project security posture. Follows the resolution cascade: explicit argument wins, then existing adoption, then full assessment from guidelines. Reads package-level `.pair.security.md` files to avoid duplicating rules already defined in submodules.
+Assess security posture in two modes — `review` (per-PR, composed by `/pair-process-review`) and `audit` (one-shot, standalone) — against a rule set resolved from the [quality model](../../../.pair/knowledge/guidelines/quality-assurance/quality-model.md) (§2 Security pillar, §3.1 Security relevance dimension) plus the [security guidelines](../../../.pair/knowledge/guidelines/quality-assurance/security/README.md). The deterministic secret-scanning layer that mechanically blocks a build on a committed secret (R6.5) is CI config provisioned by `/pair-capability-setup-gates` (D24, anti-complexity) — not this skill, and not an LLM judgment call.
 
 ## Arguments
 
-| Argument  | Required | Description                                                                                        |
-| --------- | -------- | -------------------------------------------------------------------------------------------------- |
-| `$scope`  | No       | Limit assessment to one package: `web`, `mobile`, `services`. Omit for full project assessment.    |
-| `$choice` | No       | Override: skip assessment and adopt a specific security control set directly (e.g. `owasp-top10`). |
+| Argument  | Required | Description                                                                                                                                |
+| --------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `$mode`   | No       | `review` — assess the current PR diff. `audit` — one-shot codebase scan. Auto-detected: called by `/pair-process-review` → `review`; otherwise → `audit`. |
+| `$choice` | No       | Audit mode only. A named control set to adopt directly (e.g. `owasp-top10`), skipping full evaluation — resolution cascade Path A.             |
+| `$scope`  | No       | Audit mode only. Area/package to scope the assessment (default: whole codebase).                                                              |
+| `$output` | No       | Audit mode only. Directory the report is written to. Default: `.pair/working/reports/security/` (D14 — report path override).                  |
+| `$approval` | No     | Approval-round mode: `interactive` (default — every round runs as written) or `auto` (ask nothing — three outcomes, all reported on the `Approval` line: a proposal is accepted as-is; an existing recorded value is kept and the delta reported unapplied; a call the skill cannot make alone yields **no proposal**, reported unresolved). Audit mode only — review mode has no approval round. See [approval rounds](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/approval-rounds.md). |
 
-## Composed Skills
+## Rule Set (both modes read this; only audit mode's re-derivation is cascade-gated)
 
-| Skill                              | Type       | Required                               |
-| ---------------------------------- | ---------- | -------------------------------------- |
-| `/pair-capability-record-decision` | Capability | Yes — records security strategy as ADL |
+Every rule the skill applies is resolved through the same layered set, most-specific wins on conflict, layers are additive (a project rule never silently deletes a KB default):
 
-## Adoption Files
-
-- **Primary target**: [adoption/tech/security.md](../../../.pair/adoption/tech/security.md) — global security principles and WordPress-specific rules
-- **Package targets** (read + write): `.pair.security.md` files in `apps/web/.pair/`, `apps/mobile/.pair/`, `services/.pair/`
-- **Ownership**: Global principles section (shared file — package-specific rules live in submodule files)
+1. **Global (KB default)** — [authentication-authorization.md](../../../.pair/knowledge/guidelines/quality-assurance/security/authentication-authorization.md), [vulnerability-prevention.md](../../../.pair/knowledge/guidelines/quality-assurance/security/vulnerability-prevention.md), [compliance.md](../../../.pair/knowledge/guidelines/quality-assurance/security/compliance.md) — plus the Security relevance heuristic in [quality-model.md](../../../.pair/knowledge/guidelines/quality-assurance/quality-model.md) §3.1 (what counts green/yellow/red).
+2. **Per-service** — [api-security.md](../../../.pair/knowledge/guidelines/quality-assurance/security/api-security.md).
+3. **Per-web-app** — [web-app-security.md](../../../.pair/knowledge/guidelines/quality-assurance/security/web-app-security.md).
+4. **Project (adoption)** — `adoption/tech/security.md` if it exists — the delta an audit proposed and a human confirmed; absent entirely ⇒ KB defaults (layers 1-3) apply completely (D21).
+5. **Package-scoped override** (only if the package-local adoption override from story #237 is active): load the touched packages' local `.pair/adoption/tech/security.md` instead of the root one; assessment and review load only the packages the diff/story touches.
 
 ## Algorithm
 
-### Step 1: Resolution Cascade
+### Step 0: Detect Mode
 
-#### Path A — Argument Override
+1. **Check**: Is `$mode` provided?
+2. **Skip**: If provided, use it. Proceed to Step 1.
+3. **Act**: Auto-detect: invoked with a PR/diff in context (i.e. by `/pair-process-review`) → `review`; otherwise → `audit`.
+4. **Verify**: Mode is set.
 
-1. **Check**: Is `$choice` provided?
-2. **Skip**: If not provided, go to Path B.
-3. **Act**: Confirm with developer:
+### Scoped Context (package-local override)
 
-   > Security control override: **$choice**.
-   > This will be adopted without full assessment.
-   > Confirm?
+Opt-in. When the central adoption file carries a `## Package-Local Adoption` router, resolve the rule set per [scoped context resolution](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/scoped-context-resolution.md) (diff-scoped here: globals + `<pkg>/.pair/` of the packages the diff touches, nothing else); report a central↔local conflict, a dangling router entry, and — when the [complexity signals](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/package-local-adoption.md#activation-proposal) fire — PROPOSE the override and wait for approval, never activate. No router ⇒ unchanged behaviour.
 
-4. **Check**: Does [adoption/tech/security.md](../../../.pair/adoption/tech/security.md) already exist with different controls?
-   - If yes, warn: "Current security adoption exists. Override to **$choice**?"
-5. **Verify**: Developer confirms. Proceed to Step 4.
+### Step 1: Load Rule Set
 
-#### Path B — Adoption Exists
+1. **Act**: Read the five layers above, in order, skipping any that don't exist (layer 4-5 are commonly absent — that's expected, not a gap, per D21).
+2. **Verify**: Effective rule set assembled. Layer 4/5 absence is logged as "KB global rules only" in the output, not treated as an error.
 
-1. **Check**: Does [adoption/tech/security.md](../../../.pair/adoption/tech/security.md) exist and is it populated (not template)?
-2. **Skip**: If missing or empty, go to Path C.
-3. **Act**: Read current adoption. Read all package `.pair.security.md` files present. Present:
+### Step 2: Route by Mode
 
-   > Security adoption already exists.
-   > Global principles: **[list]**
-   > Package files found: **[web | mobile | services]**
-   > Open vulnerabilities tracked: **[count from package files]**
+- `$mode = review` → Step 3.
+- `$mode = audit` → Step 5 (resolution cascade first).
 
-4. **Check**: Does a corresponding decision record exist? (Scan [adoption/decision-log/](../../../.pair/adoption/decision-log) for `*security*` files.)
-5. **Act**: If decision record missing, compose `/pair-capability-record-decision` to backfill.
-6. **Verify**: Adoption and decision record consistent. Done — exit skill.
+## Review Mode (per-PR)
 
-#### Path C — Full Assessment
+### Step 3: Evaluate the Diff
 
-1. **Act**: Proceed to Step 2 (full assessment mode).
+1. **Act**: For each file touched by the diff, classify against the rule set's Security relevance heuristic (quality-model.md §3.1): no security-sensitive surface (green) / security-adjacent — new external dependency, input validation on a non-critical path (yellow) / authn-authz, secrets-credentials, cryptography, PII, untrusted-input parsing (red).
+2. **Act**: For each finding, tag it **introduced** (new code/change in this diff) or **pre-existing** (surfaced, not a reason to block on its own — the block signal only fires on introduced vulnerabilities).
+3. **Verify**: Every touched security-sensitive surface has a classification and a provenance tag (introduced/pre-existing).
 
-### Step 2: Read Guidelines
+### Step 4: Emit Review Verdict
 
-1. **Act**: Read security guidelines:
-   - [Security README](../../../.pair/knowledge/guidelines/quality-assurance/security/README.md) — framework overview, tool matrix, severity classification
-   - [Security Guidelines](../../../.pair/knowledge/guidelines/quality-assurance/security/security-guidelines.md) — OWASP-based standards
-   - [Security by Design](../../../.pair/knowledge/guidelines/quality-assurance/security/security-by-design.md) — design principles
-   - [Authentication & Authorization](../../../.pair/knowledge/guidelines/quality-assurance/security/authentication-authorization.md) — identity controls
-   - [Vulnerability Prevention](../../../.pair/knowledge/guidelines/quality-assurance/security/vulnerability-prevention.md) — proactive controls
-   - [Sensitive Data](../../../.pair/knowledge/guidelines/quality-assurance/security/sensitive-data.md) — data handling rules
-   - [API Security](../../../.pair/knowledge/guidelines/quality-assurance/security/api-security.md) — API-specific controls
-2. **Act**: Read project context:
-   - [adoption/product/PRD.md](../../../.pair/adoption/product/PRD.md) — project type, scale, compliance requirements (if available)
-   - [adoption/tech/tech-stack.md](../../../.pair/adoption/tech/tech-stack.md) — platforms and languages (determines which controls apply)
-   - All existing `.pair.security.md` files — rules already documented per package
-3. **Verify**: Guidelines and project context loaded.
+1. **Act**: Compute the overall verdict = highest severity among introduced findings (pre-existing findings are reported but don't raise the verdict past what introduced findings justify, consistent with the review floor in quality-model.md §3.2: this review pass may only raise the tier's Security relevance dimension, never lower a value the story's own refinement-time assessment already set).
+2. **Act**: Render the 1-line verdict + collapsed findings list (severity, rule/category, file:location) per Output Format below — output-only, no files written; this is embedded by the caller into the review body's five Security sections (D22 — verdict in ~1 line, details in `<details>`).
+3. **Verify**: Verdict emitted. If any **introduced** finding is red → flag explicitly for the caller: this is the signal that drives `/pair-process-review`'s CHANGES-REQUESTED decision (the decision itself stays `/pair-process-review`'s, per its own Step 5.2 table — this skill only reports the finding).
 
-### Step 3: Assess Security Posture
+## Audit Mode (one-shot)
 
-1. **Act**: If `$scope` is provided, assess only that package. Otherwise assess all packages present.
+### Step 5: Resolution Cascade
 
-2. **Act**: For each package in scope, evaluate against OWASP Top 10 categories:
-   - A01 Broken Access Control
-   - A02 Cryptographic Failures
-   - A03 Injection
-   - A04 Insecure Design
-   - A05 Security Misconfiguration
-   - A06 Vulnerable and Outdated Components
-   - A07 Identification and Authentication Failures
-   - A08 Software and Data Integrity Failures
-   - A09 Security Logging and Monitoring Failures
-   - A10 Server-Side Request Forgery
+See [resolution cascade](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/resolution-cascade.md) for the generic Path A/B/C mechanics, and [approval rounds](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/approval-rounds.md) for the `$approval` signal both rounds below carry.
 
-3. **Act**: Assign severity to each gap found (P0 Critical / P1 High / P2 Medium / P3 Low) using the classification in the security README.
+- **Path A** (`$choice` provided): adopt the named control set (e.g. `owasp-top10`) directly — render the `tech/security.md` proposal referencing it, skip full evaluation, confirm with the developer (`$approval: interactive`). Under `auto` the named set is accepted as passed, and any conflict with existing adoption is reported rather than asked. Proceed to Step 8. <!-- approval-round: kind=confirm; auto=accept -->
+- **Path B** (adoption check): `adoption/tech/security.md` exists with a populated project-rules section. Confirm it's still current with the developer (`$approval: interactive`; under `auto` the existing rules are **kept** and reported, the conservative branch — re-auditing would propose replacing a recorded decision nobody was asked about); if its backing decision record is missing, report the gap (this skill still writes nothing to adoption — the caller backfills via `/pair-capability-record-decision`). No audit report is generated for an unchanged, confirmed ruleset ("no re-assessment", per the resolution cascade addendum). Exit. <!-- approval-round: kind=keep-or-redo; auto=keep -->
+- **Path C** (no override, no populated adoption): proceed to Step 6 — full OWASP Top 10 assessment.
 
-4. **Act**: Check which package `.pair.security.md` files already exist:
-   - If a file exists, read it and treat documented rules as already addressed — do NOT duplicate them in the global adoption file.
-   - If a file is missing for a package with code, flag it as a gap.
+### Step 6: Evaluate Against OWASP Top 10
 
-5. **Act**: Present findings summary to developer:
+1. **Act**: For each area in `$scope` (default: whole codebase), evaluate exposure to each OWASP Top 10 category (A01–A10), assigning severity P0 (critical) through P3 (low) per finding.
+2. **Act**: For each finding, cross-reference the matching KB guideline (e.g. A03 Injection → [vulnerability-prevention.md](../../../.pair/knowledge/guidelines/quality-assurance/security/vulnerability-prevention.md), A07 Auth Failures → [authentication-authorization.md](../../../.pair/knowledge/guidelines/quality-assurance/security/authentication-authorization.md)) instead of duplicating guideline content in the report.
+3. **Verify**: Every in-scope area has been evaluated against all 10 categories (even if the result is "not applicable" for that area) — no silent skips.
 
-   > **Security Assessment Summary — [scope]**
-   >
-   > OWASP Coverage:
-   >
-   > - A01 Access Control: [OK | gaps found]
-   > - A02 Cryptographic Failures: [OK | gaps found]
-   > - ... (all 10 categories)
-   >
-   > Open vulnerabilities by severity:
-   >
-   > - P0 Critical: N
-   > - P1 High: N
-   > - P2 Medium: N
-   >
-   > Missing package security files: [list]
-   >
-   > Recommendation: [summary of controls to adopt]
+### Step 7: Write Audit Report
 
-6. **Verify**: Developer approves the assessment and proposed controls.
+1. **Act**: Render the report — findings grouped by OWASP category, each with severity, location, and a link to the matching guideline.
+2. **Act**: Create `$output` (default `.pair/working/reports/security/`) if it doesn't exist. Write the report to `$output/<YYYY-MM-DD>-audit.md`. This is a direct write (reports are excluded from the KB registry per D14 — they are not knowledge, and this skill, unlike the adoption-writing `assess-*` family, is the one authorized to write them itself, the same way `/pair-capability-design-manual-tests` writes its own suite files directly).
+3. **Verify**: Report file exists at the resolved path.
 
-### Step 4: Write Adoption Files
+### Step 8: Render Project-Rules Proposal
 
-1. **Act**: Update [adoption/tech/security.md](../../../.pair/adoption/tech/security.md):
-   - Write or update **Security Principles** section with approved global controls.
-   - Write or update **WordPress-Specific** section if WordPress is in scope.
-   - Do NOT write package-specific rules — those belong in `.pair.security.md` submodule files.
-   - Preserve existing content in sections not touched by this assessment.
-
-2. **Act**: For each package missing a `.pair.security.md` file:
-   - Create the file at `apps/<package>/.pair/.pair.security.md` (or `services/.pair/.pair.security.md`).
-   - Follow the structure of existing package files (open vulnerabilities + security rules + exceptions + what's done correctly + references).
-   - Add the new file reference to the **Security Review Process** section of `adoption/tech/security.md`.
-
-3. **Verify**: All adoption files written and consistent. No rule is duplicated between global and package files.
-
-### Step 5: Record Decision
-
-1. **Act**: Compose `/pair-capability-record-decision`:
-   - `$type`: `non-architectural`
-   - `$topic`: `security-strategy`
-   - `$summary`: "Security posture assessed for [scope]: [N] controls adopted, [N] open vulnerabilities tracked"
-2. **Verify**: ADL created at `adoption/decision-log/YYYY-MM-DD-security-strategy.md`. Adoption file consistent with ADL.
+1. **Act**: Render the `tech/security.md` content: global project security principles distilled from the audit findings (never duplicating KB or per-service/per-web-app guideline content — only the project-specific delta).
+2. **Act**: Assemble the persistence tuple per [record-decision invocation contract](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/record-decision-contract.md):
+   - `content`: the rendered `tech/security.md` body.
+   - `target`: `adoption/tech/security.md`.
+   - `decision-metadata`: `$type: non-architectural`, `$topic: security-strategy-initial` (first audit) or `security-strategy-update` (subsequent), `$summary: "Project security rules adopted from audit: [key rules]"`.
+3. **Verify**: Proposal assembled. Persistence is performed by the caller via `/pair-capability-record-decision`, never by this skill (the report file from Step 7 is the one exception this skill writes directly — adoption content is never self-written).
 
 ## Output Format
 
+### Review Mode
+
 ```text
-ASSESSMENT COMPLETE:
-├── Domain:     Security
-├── Scope:      [full | web | mobile | services]
-├── Path:       [Argument Override | Adoption Exists | Full Assessment]
-├── OWASP:      [N/10 categories covered]
-├── Open vulns: [P0: N | P1: N | P2: N | P3: N]
-├── Adoption:   [adoption/tech/security.md — written | confirmed | updated]
-├── Pkg files:  [list of .pair.security.md files created or confirmed]
-├── Record:     [ADL path — created | exists | backfilled]
-└── Status:     [Complete | Confirmed existing]
+SECURITY REVIEW (composed by /review — no files written):
+├── Mode:       Review
+├── Verdict:    [green | yellow | red] — [1-line summary]
+├── Findings:   [N total — N introduced, N pre-existing]
+├── Rule Set:   [KB global | + per-service | + per-web-app | + adoption tech/security.md]
+└── Feeds:      Security relevance dimension (quality-model.md §3.1) — a floor, never lowers the tier
+
+<details>
+<summary>N findings</summary>
+
+1. [severity] [category] — [file:location] — [introduced | pre-existing] — [recommendation]
+...
+
+</details>
+```
+
+### Audit Mode
+
+```text
+SECURITY AUDIT COMPLETE:
+├── Mode:      Audit
+├── Scope:     [whole codebase | $scope]
+├── Path:      [Argument Override | Adoption Exists (confirmed, no re-assessment) | Full OWASP Assessment]
+├── Findings:  [N — P0: x, P1: x, P2: x, P3: x | N/A — Path B]
+├── Report:    [.pair/working/reports/security/<file> — written | N/A — Path B]
+├── Proposal:  [content rendered for tech/security.md | N/A — Path B, already current]
+├── Target:    adoption/tech/security.md
+├── Persist:   [caller composes /record-decision(content, target) → ADL | N/A]
+├── Approval:  [interactive — approved | auto — accepted as passed | auto — existing rules kept | auto — UNRESOLVED, no proposal]
+└── Status:    [Report written | Confirmed existing | Proposal ready | Unresolved — no proposal]
 ```
 
 ## Composition Interface
 
-When composed by `/pair-process-review`:
+When composed by `/pair-process-review` (Phase 2):
 
-- **Input**: `/pair-process-review` invokes `/pair-capability-assess-security` during the adoption compliance phase. May pass `$scope` to limit assessment to the package touched by the PR.
-- **Output**: Returns security findings relevant to the PR — open vulnerabilities, missing controls, OWASP gaps. `/pair-process-review` includes these findings in the review report.
-- ADL is NOT written during review — adoption changes require explicit developer approval outside the review flow.
+- **Input**: `/pair-process-review` invokes `/pair-capability-assess-security` with `$mode: review` against the PR diff.
+- **Output**: Returns the verdict + collapsed findings (Review Mode output above). `/pair-process-review` embeds it verbatim into the review body's five Security sections and, if any introduced finding is red, factors it into its own CHANGES-REQUESTED decision (Step 5.2).
+- **Persistence**: None — review mode writes nothing.
 
-When invoked **independently**:
+When invoked **independently** in audit mode:
 
-- Full interactive flow. Developer commits changes when satisfied.
+- Full one-shot flow. The developer (or agent) reviews the report and, if a proposal was rendered (Path A/C), persists it by composing `/pair-capability-record-decision`, then commits.
 
 ## Edge Cases
 
-- **Package `.pair.security.md` exists but is outdated** (references fixed vulnerabilities): Prompt developer to confirm which items are resolved before updating.
-- **Argument conflicts with adoption**: Warn developer, ask for confirmation. If confirmed, update adoption and create new decision record.
-- **No PRD available**: Proceed with assessment. Warn: "No PRD found — compliance requirements (GDPR, PCI-DSS) must be confirmed manually."
-- **Package code exists but no `.pair.security.md`**: Create the file. Warn: "No security file found for [package] — creating from assessment findings."
-- **Decision record already exists for same scope+decision**: Skip writing (no duplicates).
-- **All packages already have `.pair.security.md` and global adoption exists**: Path B (adoption exists) — confirm and exit.
+- **No adoption rules yet** (`tech/security.md` absent): KB global rules only, in both modes; audit mode's Path C evaluation is exactly the mechanism that proposes the initial project set.
+- **Introduced vulnerability found in review mode**: reported as a red, `introduced` finding — the caller (`/pair-process-review`) turns this into CHANGES-REQUESTED; this skill never blocks anything itself (it has no merge authority).
+- **Scanner/secret-in-diff concerns**: out of this skill's scope entirely — see the deterministic CI layer in [secret-scanning.md](../../../.pair/knowledge/guidelines/quality-assurance/security/secret-scanning.md) and `/pair-capability-setup-gates`. This skill never re-implements secret detection (D24).
 
 ## Graceful Degradation
 
-- If security guidelines are not found, use OWASP Top 10 as minimal framework and ask developer to confirm which categories are in scope.
-- If `/pair-capability-record-decision` is not installed, warn and skip decision recording: "Decision not recorded — /pair-capability-record-decision not installed."
-- If adoption directory doesn't exist, create it on first write.
-- If a package `.pair.security.md` exists but is empty/template, treat as missing (Path C).
+See [graceful degradation](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/graceful-degradation.md) (guideline missing → minimal assessment, ask directly; adoption file missing → skill still runs against KB defaults; PM tool unreachable → n/a, this skill doesn't read the PM tool) for the standard scenarios. Additional cases:
+
+- **Package-scoped override (#237) not active**: load only the root `adoption/tech/security.md` (layer 4) — the package-scoped layer 5 is skipped entirely, not an error.
+- **`/pair-capability-map-contexts` not available** (for per-service/per-web-app boundary detection in review mode): fall back to inferring service/web-app boundaries from package structure (framework markers, `package.json` fields) rather than HALTing.
+- **`/pair-capability-record-decision` not installed** (audit mode): the report (Step 7) is still written — it's this skill's own direct write, unaffected. Only the `tech/security.md` proposal (Step 8) stands as a report with no persistence path; note this explicitly in the output.
 
 ## Notes
 
-- **Global vs package rules**: Global `adoption/tech/security.md` owns cross-cutting principles. Package `.pair.security.md` files own implementation-specific rules and open vulnerabilities. Never duplicate a rule in both.
-- **Security decisions are non-architectural** → produce ADL (not ADR), unless the security choice structurally affects the system (e.g. adopting a zero-trust mesh that changes service boundaries).
-- **Idempotency**: the resolution cascade IS the idempotency mechanism. If adoption exists and is consistent with package files, assessment is already done.
-- **Open vulnerabilities**: tracked in package `.pair.security.md` files under `## Open Vulnerabilities`. Once a vulnerability is fixed and a PBI closed, remove it from the file.
-- Educational content (OWASP descriptions, threat models, WHY) stays in guidelines. This skill references guidelines for assessment criteria and control recommendations.
+- **Writes exactly one kind of file itself**: the audit report under `.pair/working/reports/security/` (Step 7) — the one exception to the `assess-*` family's usual output-only convention, justified the same way `/pair-capability-design-manual-tests` writes its own suite files: reports are operational artifacts (D14), not adoption content. Adoption content (`tech/security.md`) is never self-written — that always goes through the caller's `/pair-capability-record-decision` composition (Step 8).
+- **Idempotent** — see [idempotency convention](../../../.pair/knowledge/guidelines/technical-standards/ai-development/skill-conventions/idempotency.md). Audit mode's check: Path B (populated `tech/security.md` + backing decision record) confirms rather than re-running the full OWASP assessment. Review mode is not idempotent in that sense — a fresh verdict is computed every review, against the current diff, by design (findings can change commit to commit).
+- **Never scans for secrets**: committed-secret detection is a deterministic, LLM-free CI layer (R6.5) provisioned by `/pair-capability-setup-gates`, not an assessment this skill performs — keeping the "no LLM involved" guarantee real (D24).
+- **D22** (1-line verdict + collapsed findings, never a table inline): a project-level decision record, not part of this portable dataset.

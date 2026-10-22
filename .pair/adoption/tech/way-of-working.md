@@ -23,6 +23,12 @@ This document defines the **validated development practices and team workflows**
 - **PM tool:** **Filesystem** — backlog, epics, user stories, and tasks are **stored as files** in the repo (e.g. under `.pair/`), versioned with Git. **No** adopted cloud PM app (GitHub Projects, Linear, Jira, …) for now.
 - **Convention:** backlog in `.pair/adoption/product/backlog/` (`01-initiatives/<anno>/`, `02-epics/<stato>/`, `03-user-stories/<stato>/`) per [filesystem-implementation.md](../../knowledge/guidelines/collaboration/project-management-tool/filesystem-implementation.md). Update this section when a cloud or hosted PM tool is adopted.
 
+- `pm-tool`: `filesystem`
+
+## Git Workflow
+
+- `code-host`: `github`
+
 ## User story format
 
 - **Use classic user stories** (Italian), **not** Given–When–Then as the **main** story text:
